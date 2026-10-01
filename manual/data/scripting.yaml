@@ -2123,7 +2123,7 @@ trigger_events:
   kind: trigger-event
   index: 33
   editor_name: Selected by player
-  editor_description: Triggers when the unit is selected by the player.  Use in single-player only.
+  editor_description: Triggers when the unit is selected by the player.
   need: NEED_NONE
   parameters: []
   ini_example:
