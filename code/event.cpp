@@ -1112,13 +1112,6 @@ void EventClass::Execute(void)
 			}
 			break;
 
-		/*
-		**	Request that the unit/infantry/aircraft go into idle mode.
-		*/
-		/*
-		**	A player selected an object. A campaign mission hands the player every house it
-		**	controls, so the trigger answers to those as well as to the sender's own house.
-		*/
 		case SELECTED:
 			techno = Data.Target.Whom.As_Techno();
 			if (techno != NULL && techno->IsActive && techno->Tag != NULL
@@ -1127,6 +1120,9 @@ void EventClass::Execute(void)
 			}
 			break;
 
+		/*
+		**	Request that the unit/infantry/aircraft go into idle mode.
+		*/
 		case IDLE:
 			techno = Data.Target.Whom.As_Techno();
 			if (techno != NULL && techno->IsActive && !techno->IsInLimbo && !techno->IsTethered) {

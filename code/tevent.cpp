@@ -101,7 +101,7 @@ static const struct {
 	{"Power Low...","Triggers when the specified house's power falls below 100% level."},
 	{"Bridge destroyed","Triggers when the attached bridge is destroyed. A bridge is considered destroyed when an impassable gap is created in the bridge."},
 	{"Building exists...","Triggers when the building (owned by the house of this trigger) specified exists on the map. This works for buildings that are preexisting or constructed by deploying."},
-	{"Selected by player", "Triggers when the unit is selected by the player.  Use in single-player only."},
+	{"Selected by player", "Triggers when the unit is selected by the player."},
 	{"Comes near waypoint...", "Triggers when the object comes near the specified waypoint."},
 	{"Enemy In Spotlight...", "Triggers when an enemy unit enters the spotlight cast by the attached building."},
 	{"Local is set...", "Triggers when the specifed local is turned on."},
