@@ -373,7 +373,7 @@ void LogicClass::AI(void)
 	}
 //	HouseClass::Recalc_Attributes();
 
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+	if (Session.Is_Networked()) {
 		for (index = 0; index < MoveFlashes.Count(); index++) {
 			MoveFlashes[index]->AI();
 		}

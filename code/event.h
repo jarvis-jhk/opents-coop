@@ -111,6 +111,7 @@ class EventClass
 			LATENCYFUDGE,
 			NETWORK_REPORT,
 			ABANDON_COUNT,
+			SELECTED,			// a player selected an object, which springs its selection trigger
 
 			LAST_EVENT,			// one past the last event
 		};

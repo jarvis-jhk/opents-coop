@@ -1377,9 +1377,9 @@ unsigned int IPXManagerClass::Global_Response_Time(void)
 void IPXManagerClass::Store_Stats(void)
 {
 	for (int i = 0; i < NumConnections; i++) {
-		HouseClass * house = Houses[Connection[i]->ID];
+		HouseClass * house = Session.Seat_House(Connection[i]->ID);
 
-		if (house != NULL && house != PlayerPtr) {
+		if (house != NULL && Connection[i]->ID != Session.Local_Seat_ID()) {
 			MPStatsType & stats = Session.ConnectionStats[i];
 			if (stats.Name[0] == '\0') {
 				strcpy(stats.Name, Connection[i]->Name);
@@ -1430,8 +1430,8 @@ void IPXManagerClass::Multiplayer_Debug_Print(int top)
 	}
 
 	for (int i = 0; i < NumConnections; i++) {
-		HouseClass * house = Houses[Connection[i]->ID];
-		if (house != NULL && house != PlayerPtr) {
+		HouseClass * house = Session.Seat_House(Connection[i]->ID);
+		if (house != NULL && Connection[i]->ID != Session.Local_Seat_ID()) {
 			int scheme = house->Scheme;
 
 			Fancy_Text_Print(Session.Shown_Name(Connection[i]->ID, Connection[i]->Name).c_str(), *LogicalSurface, LogicalSurface->Get_Rect(), Point2D((i + 1) * 100, top + 2), ColorSchemes[scheme], TBLACK, TextPrintType(TPF_EFNT|TPF_NOSHADOW));

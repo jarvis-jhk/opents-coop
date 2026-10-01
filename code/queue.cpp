@@ -397,7 +397,7 @@ void Dump_Packet_Too_Late_Stuff(EventClass *event);
  *=========================================================================*/
 bool Queue_Mission(TargetClass whom, MissionType mission, TargetClass & target, TargetClass & destination)
 {
-	OutList.push_back(EventClass(PlayerPtr->HeapID, whom, mission, target, destination));
+	OutList.push_back(EventClass(Session.Local_Seat_ID(), whom, mission, target, destination));
 	return(true);
 }
 
@@ -429,7 +429,7 @@ bool Queue_Mission(TargetClass whom, MissionType mission, TargetClass & target, 
  *=============================================================================================*/
 bool Queue_Mission(TargetClass whom, MissionType mission, TargetClass & target, TargetClass & destination, SpeedType speed, MPHType maxspeed)
 {
-	OutList.push_back(EventClass(PlayerPtr->HeapID, whom, mission, target, destination, speed, maxspeed));
+	OutList.push_back(EventClass(Session.Local_Seat_ID(), whom, mission, target, destination, speed, maxspeed));
 	return(true);
 }
 
@@ -455,7 +455,7 @@ bool Queue_Options(void)
 		return(false);
 	}
 
-	OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::OPTIONS));
+	OutList.push_back(EventClass(Session.Local_Seat_ID(), EventClass::OPTIONS));
 	return(true);
 
 }		/* end of Queue_Options */
@@ -478,10 +478,20 @@ bool Queue_Options(void)
  *=========================================================================*/
 bool Queue_Exit(void)
 {
-	OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::EXIT));
+	OutList.push_back(EventClass(Session.Local_Seat_ID(), EventClass::EXIT));
 	return(true);
 
 }		/* end of Queue_Exit */
+
+
+/// <summary>
+/// Returns the type whose network handling the session uses. A shared house campaign keeps the
+/// campaign's type and is carried over the network as an internet match is.
+/// </summary>
+static GameType Network_Game_Type(void)
+{
+	return(Session.IsSharedHouse ? GAME_INTERNET : Session.Type);
+}
 
 
 /***************************************************************************
@@ -502,7 +512,7 @@ bool Queue_Exit(void)
 void Queue_AI(void)
 {
 	if (Frame >= 0 && Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP
-		&& (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET)) {
+		&& Session.Is_Networked()) {
 		Session.Advance_Network_Timing(static_cast<unsigned int>(Frame));
 	}
 
@@ -512,7 +522,7 @@ void Queue_AI(void)
 
 	else {
 
-		switch (Session.Type) {
+		switch (Network_Game_Type()) {
 
 			case GAME_SKIRMISH:
 			case GAME_NORMAL:
@@ -745,7 +755,7 @@ static void Queue_AI_Multiplayer(void)
 		&& !Session.LoadGame && skip_crc == 0) {
 
 		Session.ForceDesyncFrame = -1;
-		GameCRC ^= 0x5A5A5A5Au + (unsigned int)(PlayerPtr != NULL ? PlayerPtr->HeapID : 0);
+		GameCRC ^= 0x5A5A5A5Au + (unsigned int)std::max(Session.Local_Seat_ID(), 0);
 		DebugString("Forcing a checksum mismatch on frame %d for out-of-sync testing\n", Frame);
 	}
 
@@ -797,7 +807,7 @@ static void Queue_AI_Multiplayer(void)
 		//.....................................................................
 		// Wait for the other guys
 		//.....................................................................
-		rc = Wait_For_Players (1, net, _timings[Session.Type].MIXFILE_RESEND_DELTA, _timings[Session.Type].FRAMESYNC_DLG_TIME,
+		rc = Wait_For_Players (1, net, _timings[Network_Game_Type()].MIXFILE_RESEND_DELTA, _timings[Network_Game_Type()].FRAMESYNC_DLG_TIME,
 			Session.ReconnectTimeout, multi_packet_buf, multi_packet_max,
 			SentCommandCount, TheirFrameSync);
 
@@ -864,7 +874,7 @@ static void Queue_AI_Multiplayer(void)
 	}
 
 	int const timing_master = Session.Master_Player_ID();
-	if (Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP && PlayerPtr != NULL && PlayerPtr->HeapID == timing_master
+	if (Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP && PlayerPtr != NULL && Session.Local_Seat_ID() == timing_master
 		&& Frame > 0 && NetTiming::Evaluation_Is_Due(network_timing_frame)) {
 		Generate_Real_Timing_Event();
 	}
@@ -902,7 +912,7 @@ static void Queue_AI_Multiplayer(void)
 	//------------------------------------------------------------------------
 	rc = Wait_For_Players (0, net,
 	TIMER_SECOND, /// (Session.MaxAhead << 3),
-	std::max((int) net->Response_Time() * 3, _timings[Session.Type].FRAMESYNC_TIMEOUT ),
+	std::max((int) net->Response_Time() * 3, _timings[Network_Game_Type()].FRAMESYNC_TIMEOUT ),
 	Session.ReconnectTimeout,
 	multi_packet_buf, multi_packet_max, SentCommandCount, TheirFrameSync);
 
@@ -1509,7 +1519,7 @@ static void Generate_Real_Timing_Event(void)
 
 	unsigned int const frame = static_cast<unsigned int>(Frame);
 	int const master_id = Session.Master_Player_ID();
-	if (PlayerPtr == NULL || PlayerPtr->HeapID != master_id) {
+	if (PlayerPtr == NULL || Session.Local_Seat_ID() != master_id) {
 		return;
 	}
 	Session.Prepare_Network_Timing_Master(master_id, frame);
@@ -1753,7 +1763,7 @@ static void Send_FrameSync(ConnManClass *net, int cmd_count)
 	else {
 		packet.Frame = Frame + Session.MaxAhead;
 	}
-	packet.ID = PlayerPtr->HeapID;
+	packet.ID = Session.Local_Seat_ID();
 	packet.Data.FrameInfo.CRC = ScenarioCRC;
 	packet.Data.FrameInfo.CommandCount = cmd_count;
 	packet.Data.FrameInfo.Delay = Session.MaxAhead;
@@ -1853,7 +1863,7 @@ static RetcodeType Process_Receive_Packet(ConnManClass *net,
 
 		their[index].frame = frame;
 
-		if (Session.Type != GAME_INTERNET) {
+		if (Network_Game_Type() != GAME_INTERNET) {
 			Session.PlayerLatency[index] = 0;
 		} else {
 			// The response time is counted in system timer ticks and the frame rate over a second.
@@ -2131,7 +2141,7 @@ static int Process_Reconnect_Dialog(CDTimerClass<SystemTimerClass> *timeout_time
 					oldest_index = i;
 				}
 			}
-			if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+			if (Session.Is_Networked()) {
 				int const oldest_id = Ipx.Connection_ID(oldest_index);
 				sprintf(buf, Fetch_String(TXT_RECONNECTING_TO), Session.Shown_Name(oldest_id, Ipx.Connection_Name(oldest_id)).c_str());
 			} else {
@@ -2404,7 +2414,7 @@ bool Cast_Kick_Vote(int kicker, int kickee)
 	Session.KickVoteWho[kickee][votes] = kicker;
 	Session.KickVoteCount[kickee]++;
 
-	if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+	if (Session.Is_Networked()) {
 		DebugString("Player %s votes to kick player %s from the game\n",
 			kicker_player->Name, kickee_player->Name);
 		snprintf(buffer, sizeof(buffer), Fetch_String(TXT_RECONNECT_KICK_RECEIVED),
@@ -2468,9 +2478,15 @@ void Kick_Player_Now(ConnManClass *net, int kickee, FrameSyncStruct * their, boo
 		return;
 	}
 
-	Houses[id]->LostConnection = true;
+	HouseClass * kicked = Session.Seat_House(id);
+	if (kicked == NULL) {
+		DebugString("Kick_Player_Now bailing - no seat %d\n", id);
+		return;
+	}
 
-	if (CountAliveTeams(Houses[id]) == 1 && Session.Type == GAME_INTERNET && !GameStatisticsPacketSent) {
+	kicked->LostConnection = true;
+
+	if (CountAliveTeams(kicked) == 1 && Session.Type == GAME_INTERNET && !GameStatisticsPacketSent) {
 		Register_Game_End_Time();
 		ConnectionLost = true;
 		if (!spamkick) {
@@ -2485,8 +2501,8 @@ void Kick_Player_Now(ConnManClass *net, int kickee, FrameSyncStruct * their, boo
 		Send_Statistics_Packet();
 	}
 
-	if (CountAliveTeams(Houses[id]) > 1 && !spamkick) {
-		Houses[id]->IsResigner = true;
+	if (CountAliveTeams(kicked) > 1 && !spamkick) {
+		kicked->IsResigner = true;
 	}
 
 	for (int i = kickee; i < net->Num_Connections() - 1; i++) {
@@ -2531,7 +2547,7 @@ static int Handle_Timeout(ConnManClass *net, FrameSyncStruct *their)
 	//------------------------------------------------------------------------
 	// For network, destroy the oldest connection
 	//------------------------------------------------------------------------
-	if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+	if (Session.Is_Networked()) {
 		j = 0x7fffffff;
 		oldest_index = 0;
 		for (i = 0; i < net->Num_Connections(); i++) {
@@ -2561,7 +2577,7 @@ static int Handle_Timeout(ConnManClass *net, FrameSyncStruct *their)
 				their[i].sent = their[i+1].sent;
 				their[i].recv = their[i+1].recv;
 			}
-			if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+			if (Session.Is_Networked()) {
 				Destroy_Connection(id,1);
 			}
 		}
@@ -2666,7 +2682,7 @@ static int Build_Send_Packet(void *buf, int bufsize, int frame_delay,
 	//........................................................................
 	// Fill in the rest of the event
 	//........................................................................
-	finfo->ID = PlayerPtr->HeapID;
+	finfo->ID = Session.Local_Seat_ID();
 	finfo->Data.FrameInfo.CRC = GameCRC;
 	finfo->Data.FrameInfo.CommandCount = num_cmds;
 	finfo->Data.FrameInfo.Delay = frame_delay;
@@ -2775,7 +2791,7 @@ static int Add_Uncompressed_Events(void *buf, int bufsize, int frame_delay,
 		//.....................................................................
 		// Set the event's ID
 		//.....................................................................
-		OutList.front().ID = PlayerPtr->HeapID;
+		OutList.front().ID = Session.Local_Seat_ID();
 
 		//.....................................................................
 		// Transfer the event in OutList to DoList, un-queue the OutList event.
@@ -3001,7 +3017,7 @@ static int Add_Compressed_Events(void *buf, int bufsize, int frame_delay,
 		//.....................................................................
 		// Set the event's ID
 		//.....................................................................
-		OutList.front().ID = PlayerPtr->HeapID;
+		OutList.front().ID = Session.Local_Seat_ID();
 
 		//.....................................................................
 		// Transfer the event in OutList to DoList, un-queue the OutList event.
@@ -3220,8 +3236,8 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 				continue;
 			}
 
-			hptr = Houses[(HousesType)(DoList[j].ID)];
-			if (hptr == NULL || (!hptr->IsHuman && !hptr->IsPlayerControl)) {
+			hptr = Session.Seat_House(DoList[j].ID);
+			if (hptr == NULL || (!hptr->IsHuman && !hptr->IsPlayerControl && !Session.Is_Seat_House(hptr))) {
 				continue;
 			}
 
@@ -3245,7 +3261,7 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 
 			Report_Out_Of_Sync(mismatches, mismatch_count, CRC, ARRAY_SIZE(CRC));
 
-			if (net == NULL || (Session.Type != GAME_IPX && Session.Type != GAME_INTERNET)) {
+			if (net == NULL || !Session.Is_Networked()) {
 
 				// A recording has nobody to decide with, so it keeps the plain box.
 				Session.Suspended++;
@@ -3288,12 +3304,14 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 	//	systems; so, execute them in the order of the HouseClass array.  This
 	// array is stored in the same order on all systems.
 	//------------------------------------------------------------------------
-	for (i = 0; i < Houses.Count(); i++) {
+	// A shared house campaign numbers its senders by seat rather than by house.
+	int const sender_count = Session.IsSharedHouse ? MAX_PLAYERS : Houses.Count();
+	for (i = 0; i < sender_count; i++) {
 		//.....................................................................
 		// Convert our index into a HousesType value
 		//.....................................................................
 		house = (HousesType)(i);
-		hptr = Houses[house];
+		hptr = Session.Seat_House(i);
 
 		//.....................................................................
 		// If for some reason this house doesn't exist, skip it.
@@ -3307,7 +3325,7 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 		if (!hptr) {
 			continue;
 		}
-		if (!hptr->IsHuman && !hptr->IsPlayerControl) {
+		if (!hptr->IsHuman && !hptr->IsPlayerControl && !Session.Is_Seat_House(hptr)) {
 			continue;
 		}
 
@@ -3323,15 +3341,14 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 			// If this event was from the currently-executing player ID, and it's
 			// time to execute it, execute it.
 			//..................................................................
-			if (DoList[j].ID == hptr->HeapID && NetTiming::Event_Is_Due(DoList[j].Frame, DoList[j].IsExecuted, Frame)) {
+			if (DoList[j].ID == i && NetTiming::Event_Is_Due(DoList[j].Frame, DoList[j].IsExecuted, Frame)) {
 
 				//...............................................................
 				// Error if it's too late to execute this packet!
 				// (Hack: disable this check for solo or skirmish mode.)
 				//...............................................................
 				if (DoList[j].Frame <= previous_execution_frame && DoList[j].Type !=
-					EventClass::FRAMEINFO && Session.Type != GAME_NORMAL &&
-					Session.Type != GAME_SKIRMISH) {
+					EventClass::FRAMEINFO && Session.Is_Networked()) {
 					Dump_Packet_Too_Late_Stuff(&DoList[j]);
 					Session.Suspended++;
 					WWMessageBox().Process (TXT_PACKET_TOO_LATE, TXT_OK);
@@ -3347,23 +3364,12 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 						DoList[j].Type==EventClass::PAGEUSER) {
 
 					if (DoList[j].Type==EventClass::EXIT) {
-						int house_count = Houses.Count();
 						/*
 						**	Flag that this house lost because it quit.
 						*/
-						HousesType quithouse = HOUSE_NONE;
-						HouseClass *quithptr = NULL;
-
-						for (int player = 0; player < house_count ; player++) {
-							quithouse = (HousesType)(player);
-							quithptr = Houses[quithouse];
-							if (!quithptr) {
-								continue;
-							}
-							if (quithptr->HeapID == DoList[j].ID) {
-								quithptr->IsGiverUpper = true;
-								break;
-							}
+						HouseClass *quithptr = Session.Seat_House(DoList[j].ID);
+						if (quithptr != NULL) {
+							quithptr->IsGiverUpper = true;
 						}
 
 						/*
@@ -3386,13 +3392,13 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 						if (DoList[j].Type==EventClass::EXIT) {
 							DebugString("Exit Event: ID:%d (%s),  Event Frame:%d,  My Frame:%d\n",
 								DoList[j].ID,
-								Houses[(HousesType)(DoList[j].ID)]->IniName.c_str(),
+								Session.Seat_House(DoList[j].ID)->IniName.c_str(),
 								DoList[j].Frame,
 								Frame);
 						}
 					}
 
-					if (DoList[j].ID == PlayerPtr->HeapID) {
+					if (DoList[j].ID == Session.Local_Seat_ID()) {
 						Sync_Record_Event(DoList[j], SYNC_EVENT_EXECUTED);
 						DoList[j].Execute();
 					} else if (DoList[j].Type==EventClass::EXIT) {
@@ -3401,8 +3407,7 @@ static int Execute_DoList(int max_houses, HousesType base_house,
 					//	for that player.  The HousesType for this event is the
 					// connection ID.
 					//............................................................
-						if ((Session.Type == GAME_IPX ||
-							Session.Type == GAME_INTERNET) && net) {
+						if (Session.Is_Networked() && net) {
 							index = net->Connection_Index (house);
 							if (index != -1) {
 								for (k = index; k < net->Num_Connections() - 1; k++) {

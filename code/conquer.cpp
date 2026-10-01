@@ -196,7 +196,7 @@ void Special_Dialog(void)
 void Ingame_Menu_Dialog(void)
 {
 	if (SpecialDialog != SDLG_NONE) {
-		if (Session.Type != GAME_NORMAL) {
+		if (Session.Type != GAME_NORMAL || Session.Is_Networked()) {
 			if (PlayerPtr->IsToLose || PlayerPtr->IsToWin || PlayerPtr->IsToDie) {
 				SpecialDialog = SDLG_NONE;
 				return;
@@ -285,7 +285,7 @@ void Ingame_Menu_Dialog(void)
 							break;
 
 						case UI_ABORT_RESTART:
-							if (Session.Type == GAME_NORMAL) {
+							if (Session.Type == GAME_NORMAL && !Session.Is_Networked()) {
 								PlayerRestarts = true;
 							} else {
 								OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::DESTRUCT));
@@ -301,7 +301,7 @@ void Ingame_Menu_Dialog(void)
 
 				case SDLG_SURRENDER:
 					if (!PlayerPtr->IsDefeated && !PlayerPtr->IsToWin && !PlayerPtr->IsToLose && !PlayerPtr->IsToDie && Surrender_Dialog(TXT_SURRENDER)) {
-						if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+						if ((Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.Is_Networked()) {
 							PlayerPtr->Flag_To_Lose();
 						} else {
 							OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::DESTRUCT));
@@ -535,7 +535,7 @@ void Call_Back(void)
 	/*
 	 * Network game maintenance.
 	 */
-	if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+	if (Session.Is_Networked()) {
 		IPX_Call_Back();
 	}
 }

@@ -217,6 +217,16 @@ SpawnerConfigClass::LaunchType SpawnerConfigClass::Launch_Type(void) const
 
 
 /// <summary>
+/// Does this file ask for a campaign mission played by more than one person? Every person then
+/// commands the mission's player house from their own machine.
+/// </summary>
+bool SpawnerConfigClass::Is_Shared_House(void) const
+{
+	return(Launch_Type() == LaunchType::Campaign && HumanCount > 1);
+}
+
+
+/// <summary>
 /// The identity of the match this file asks for. It covers every value the course of the
 /// match depends on and nothing merely displayed, so two machines handed the same match
 /// agree. The version comes first: one file read two ways is not one match.
@@ -312,7 +322,7 @@ bool SpawnerConfigClass::Is_Playable(int countries, int colors, std::string & fa
 {
 	// A resumed network match is seated from the file, so the same rules hold.
 	LaunchType kind = Launch_Type();
-	bool multiplayer = kind == LaunchType::Multiplayer ||
+	bool multiplayer = kind == LaunchType::Multiplayer || Is_Shared_House() ||
 		(kind == LaunchType::Resume && HumanCount > 1);
 
 	if (kind != LaunchType::Campaign && HumanCount == 0) {

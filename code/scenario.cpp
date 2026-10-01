@@ -143,6 +143,7 @@
 #include "script.h"
 #include "sdl/sdlwindow.h"
 #include "session.h"
+#include "hotkeygroup.h"
 #include "smudge.h"
 #include "spawnhouse.h"
 #include "stats.h"
@@ -477,7 +478,8 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 /// </summary>
 void Pause_Scenario(void)
 {
-	if ((Session.Type == GAME_NORMAL) || (Session.Type == GAME_SKIRMISH)) {
+	// The timer is part of the game the machines compare, so only a game played alone stops it.
+	if (((Session.Type == GAME_NORMAL) || (Session.Type == GAME_SKIRMISH)) && !Session.Is_Networked()) {
 		DebugString("Paused ElapsedTimer = %d\n", (int)Scen->ElapsedTimer);
 		Scen->ElapsedTimer.Stop();
 	}
@@ -564,7 +566,7 @@ void Unlock_Scenario_Input(void)
 /// <returns>bool; Did everyone make it into the game?</returns>
 bool Wait_For_Players_To_Load(void)
 {
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	if (!Session.Is_Networked()) {
 		return(true);
 	}
 
@@ -701,7 +703,7 @@ bool Read_Scenario(char const * fname)
 
 		int players = 1;
 
-		if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		if (Session.Is_Networked()) {
 			players = Session.Players.Count();
 		}
 
@@ -1066,6 +1068,7 @@ void Clear_Scenario(void)
 	Scen->UniqueID = 1000 * 1000;
 
 	PlayerPtr = NULL;
+	Clear_Hotkey_Groups();
 
 	Scen->Reset();
 	TutorialText.Clear_Overrides();
@@ -1173,7 +1176,7 @@ void Clear_Scenario(void)
  *=============================================================================================*/
 void Do_Win(void)
 {
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+	if (Session.Is_Networked()) {
 		if (!Session.Play) {
 			Wait_For_End_Of_Queue();
 		}
@@ -1335,7 +1338,7 @@ void Do_Win(void)
  *=============================================================================================*/
 void Do_Lose(void)
 {
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+	if (Session.Is_Networked()) {
 		if (!Session.Play) {
 			Wait_For_End_Of_Queue();
 		}
@@ -2306,6 +2309,43 @@ void Write_Scenario_INI(char const * fname, bool mplayer)
 
 	RawFileClass rawfile(fname);
 	ini.Save(rawfile, true);
+}
+
+
+/// <summary>
+/// Gives each person sharing the campaign mission's player house a seat house, created in house
+/// order, the lowest color first, so every machine numbers the seats alike. A seat house owns
+/// nothing and takes no part in the mission; an order sent under its id acts on the shared house.
+/// </summary>
+static void Assign_Seat_Houses(void)
+{
+	Session.SharedHouseID = PlayerPtr->HeapID;
+	for (int seat = 0; seat < MAX_PLAYERS; seat++) {
+		Session.SeatHouse[seat] = -1;
+	}
+
+	bool assigned[MAX_PLAYERS] = {};
+	for (int i = 0; i < Session.Players.Count(); i++) {
+		int index = -1;
+		for (int j = 0; j < Session.Players.Count(); j++) {
+			if (!assigned[j] && (index == -1 || Session.Players[j]->Player.Color < Session.Players[index]->Player.Color)) {
+				index = j;
+			}
+		}
+		assigned[index] = true;
+
+		NodeNameType * player = Session.Players[index];
+		HouseClass * housep = new HouseClass(PlayerPtr->Class);
+		housep->IniName = player->Name;
+		housep->IsHuman = false;
+		housep->IsObserver = true;
+		housep->IsDefeated = true;
+		housep->Scheme = Session.Color_Index_To_Scheme(player->Player.Color);
+		player->Player.ID = i;
+		Session.SeatHouse[i] = housep->HeapID;
+
+		DebugString("Seat %d is %s in house %d, sharing house %d\n", i, player->Name, housep->HeapID, Session.SharedHouseID);
+	}
 }
 
 
@@ -3863,6 +3903,10 @@ bool ScenarioClass::Read_INI(CCINIClass const & ini)
 		}
 		PlayerHouse = house;
 		PlayerPtr = House_From_HousesType(house);
+
+		if (Session.IsSharedHouse) {
+			Assign_Seat_Houses();
+		}
 
 	} else {
 		Assign_Houses();

@@ -33,6 +33,16 @@
 
 
 /// <summary>
+/// Returns the house that speaks for this machine: its seat, which in a shared house campaign is
+/// not the house it commands.
+/// </summary>
+static HouseClass * Chat_Local_House(void)
+{
+	return(Session.Seat_House(Session.Local_Seat_ID()));
+}
+
+
+/// <summary>
 /// Whether the player at this machine may open a message of this scope.
 /// </summary>
 bool Chat_Can_Open(ChatScopeType scope)
@@ -46,7 +56,7 @@ bool Chat_Can_Open(ChatScopeType scope)
 			return(!Session.ObiWan);
 
 		case ChatScopeType::Observers:
-			return(PlayerPtr->IsObserver);
+			return(Chat_Local_House()->IsObserver);
 	}
 	return(false);
 }
@@ -79,7 +89,7 @@ bool Chat_Reaches(HouseClass const * from, HouseClass const * to, ChatScopeType 
 /// <returns>bool; Did the edit open?</returns>
 bool Chat_Begin(ChatScopeType scope, int house)
 {
-	if (Session.Type != GAME_IPX && Session.Type != GAME_INTERNET) {
+	if (!Session.Is_Networked()) {
 		return(false);
 	}
 	if (Session.Messages.Is_Edit() || !Chat_Can_Open(scope)) {
@@ -116,7 +126,7 @@ bool Chat_Begin(ChatScopeType scope, int house)
 		Session.MessageAddress = *Ipx.Connection_Address(house);
 	}
 
-	Session.Messages.Add_Edit(PlayerPtr->Scheme,
+	Session.Messages.Add_Edit(Chat_Local_House()->Scheme,
 		TextPrintType(TPF_6PT_GRAD | TPF_USE_GRAD_PAL | TPF_FULLSHADOW), prefix, 0, -1);
 	Map.Flag_To_Redraw();
 	return(true);
@@ -145,7 +155,7 @@ void Chat_Send(char const * text)
 	} else {
 		for (int index = 0; index < Ipx.Num_Connections(); index++) {
 			int id = Ipx.Connection_ID(index);
-			if (Chat_Reaches(PlayerPtr, Houses[id], scope)) {
+			if (Chat_Reaches(Chat_Local_House(), Session.Seat_House(id), scope)) {
 				Ipx.Send_Global_Message(&Session.GPacket, sizeof(GlobalPacketType), 1, Ipx.Connection_Address(id));
 				Ipx.Service();
 			}
@@ -156,7 +166,7 @@ void Chat_Send(char const * text)
 	if (scope == ChatScopeType::Player) {
 		target = Session.MessageTarget;
 	}
-	Chat_Show(PlayerPtr, scope, target, Session.GPacket.Message.Buf);
+	Chat_Show(Chat_Local_House(), scope, target, Session.GPacket.Message.Buf);
 	std::strcpy(Session.LastMessage, Session.GPacket.Message.Buf);
 }
 
@@ -170,7 +180,7 @@ void Chat_Receive(GlobalPacketType const & packet, IPXAddressClass & from)
 	for (int index = 0; index < Ipx.Num_Connections(); index++) {
 		int id = Ipx.Connection_ID(index);
 		if (from == *Ipx.Connection_Address(id)) {
-			sender = Houses[id];
+			sender = Session.Seat_House(id);
 			break;
 		}
 	}
@@ -180,12 +190,12 @@ void Chat_Receive(GlobalPacketType const & packet, IPXAddressClass & from)
 		return;
 	}
 
-	if (!Chat_Reaches(sender, PlayerPtr, packet.Message.Scope)) {
+	if (!Chat_Reaches(sender, Chat_Local_House(), packet.Message.Scope)) {
 		DebugString("Chat: dropped a line from %s that is not for this house\n", (char const *)sender->IniName);
 		return;
 	}
 
-	Chat_Show(sender, packet.Message.Scope, PlayerPtr->HeapID, packet.Message.Buf);
+	Chat_Show(sender, packet.Message.Scope, Session.Local_Seat_ID(), packet.Message.Buf);
 	std::strcpy(Session.LastMessage, packet.Message.Buf);
 }
 
@@ -208,7 +218,7 @@ void Chat_Show(HouseClass const * sender, ChatScopeType scope, int target, char 
 
 		case ChatScopeType::Player:
 			std::snprintf(tag, sizeof(tag), Fetch_String(TXT_CHAT_TO_PLAYER),
-				target >= 0 && target < Houses.Count() ? Session.Shown_Name(Houses[target]).c_str() : "");
+				Session.Seat_House(target) != NULL ? Session.Shown_Name(Session.Seat_House(target)).c_str() : "");
 			break;
 
 		default:

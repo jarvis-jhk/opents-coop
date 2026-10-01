@@ -236,12 +236,12 @@ void Destroy_Connection(int id, int error)
 	HouseClass *housep;
 	char txt[80];
 
-	housep = Houses[(HousesType)id];
+	housep = Session.Seat_House(id);
 
 	//------------------------------------------------------------------------
 	// Do nothing if the house isn't human.
 	//------------------------------------------------------------------------
-	if (!housep || !housep->IsHuman)
+	if (!housep || (!housep->IsHuman && !Session.Is_Seat_House(housep)))
 		return;
 
 	SaveManager.Disable_Multiplayer_Saving();
@@ -289,7 +289,7 @@ void Destroy_Connection(int id, int error)
 
 	// Every survivor reports the departure; execution makes later copies no-ops.
 	if (PlayerPtr != NULL) {
-		OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::REMOVEPLAYER, id));
+		OutList.push_back(EventClass(Session.Local_Seat_ID(), EventClass::REMOVEPLAYER, id));
 	}
 
 	Session.NumPlayers--;

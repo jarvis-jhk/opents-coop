@@ -57,6 +57,7 @@
 #include "always.h"
 
 #include "init.h"
+#include "hotkeygroup.h"
 
 #include "_bench.h"
 #include "_command.h"
@@ -1285,7 +1286,7 @@ restart:
 	DebugString("IsTGrowth = %d\n", Special.IsTGrowth);
 	DebugString("IsTSpread = %d\n", Special.IsTSpread);
 
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH && !Session.Play) {
+	if (Session.Is_Networked() && !Session.Play) {
 		Session.Create_Connections();
 		Spawner_Announce_Master();
 		SaveManager.Multiplayer_Saves_Begin_Match(gameloaded || Session.LoadGame);
@@ -1295,7 +1296,7 @@ restart:
 
 			Ipx.Set_External_Timing(std::max<unsigned>(TIMER_SECOND, Ipx.Global_Response_Time() + 2), (unsigned int) -1, 10 * TIMER_SECOND);
 		} else {
-			if (Session.Type == GAME_INTERNET) {
+			if (Session.Type == GAME_INTERNET || Session.IsSharedHouse) {
 
 				Ipx.Set_Timing(std::max<unsigned>(TIMER_SECOND, Ipx.Global_Response_Time() + 2), (unsigned int) -1, 10 * TIMER_SECOND);
 			}
@@ -1722,7 +1723,7 @@ void Init_Random(void)
 	**	in the connection dialogs.  For single-player games, AND if we're not playing
 	**	back a recording, init the Seed to a random value.
 	*/
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	if ((Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.IsSharedHouse) {
 
 	#ifdef WIN32
 		/*
@@ -2934,7 +2935,7 @@ static void Select_Team_Members(int team)
 {
 	for (int i = 0; i < Technos.Count(); i++) {
 		TechnoClass * obj = Technos[i];
-		if (obj && !obj->IsInLimbo && obj->Group == team - 1 && obj->House->Is_Player_Control()) {
+		if (obj && !obj->IsInLimbo && Hotkey_Group(obj) == team - 1 && obj->House->Is_Player_Control()) {
 			if (!obj->IsSelected) {
 				obj->Select();
 				AllowVoice = false;
@@ -2949,11 +2950,11 @@ static void Assign_Selection_To_Team(int team)
 	for (int i = 0; i < Technos.Count(); i++) {
 		TechnoClass * obj = Technos[i];
 		if (obj && !obj->IsInLimbo && obj->House->Is_Player_Control()) {
-			if (obj->Group == team - 1) {
-				obj->Group = -1;
+			if (Hotkey_Group(obj) == team - 1) {
+				Set_Hotkey_Group(obj, -1);
 			}
 			if (obj->IsSelected) {
-				obj->Group = team - 1;
+				Set_Hotkey_Group(obj, team - 1);
 			}
 		}
 	}
@@ -3015,7 +3016,7 @@ class SelectTeamCommandClass : public CommandClass
 			Map.Repair_Mode_Control(0);
 			Map.Sell_Mode_Control(0);
 
-			bool already = CurrentObject.Count() > 0 && CurrentObject[0]->Is_Foot() && ((FootClass *)CurrentObject[0])->Group == (Team - 1);
+			bool already = CurrentObject.Count() > 0 && CurrentObject[0]->Is_Foot() && Hotkey_Group((FootClass *)CurrentObject[0]) == (Team - 1);
 			if (CurrentObject.Count() > 0 && !already) {
 				Unselect_All();
 			}
@@ -3147,7 +3148,7 @@ class CenterTeamCommandClass : public CommandClass
 			Map.Repair_Mode_Control(0);
 			Map.Sell_Mode_Control(0);
 
-			if (CurrentObject.Count() && (!CurrentObject[0]->Is_Foot() || ((TechnoClass *)CurrentObject[0])->Group != Team - 1)) {
+			if (CurrentObject.Count() && (!CurrentObject[0]->Is_Foot() || Hotkey_Group((TechnoClass *)CurrentObject[0]) != Team - 1)) {
 				Unselect_All();
 			}
 
@@ -5126,7 +5127,7 @@ static bool Quick_Save_Allowed(void)
 	if (!ScenarioActive || Session.Play || Scen->IsInputLocked) {
 		return(false);
 	}
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+	if ((Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) || Session.Is_Networked()) {
 		return(false);
 	}
 	return(!PlayerPtr->IsToWin && !PlayerPtr->IsToLose && !PlayerPtr->IsToDie);

@@ -278,7 +278,7 @@ static void Spawner_Bind_Autosave(void)
 /// </summary>
 void Spawner_Announce_Master(void)
 {
-	if (Spawner_Is_Active() && SpawnConfig.IsHost && Session.Type == GAME_INTERNET) {
+	if (Spawner_Is_Active() && SpawnConfig.IsHost && Session.Is_Networked()) {
 		Session.Announce_Master();
 	}
 }
@@ -437,6 +437,37 @@ static bool Spawner_Setup_Campaign(void)
 
 
 /// <summary>
+/// Seats the people who share the campaign mission's player house and keeps the mission's
+/// campaign rules. The network then carries the mission as it carries a match.
+/// </summary>
+/// <returns>bool; Can the shared mission the file describes be played?</returns>
+static bool Spawner_Setup_Shared_House(void)
+{
+	std::string fault;
+	if (!SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)) {
+		return(Spawner_Refuse("%s", fault.c_str()));
+	}
+
+	Session.IsSharedHouse = true;
+
+	// Every machine must draw alike, and Init_Random leaves the seed alone for a shared mission.
+	Seed = SpawnConfig.Seed;
+
+	Session.ConnTimeout = SpawnConfig.ConnTimeout;
+	Session.ReconnectTimeout = SpawnConfig.ReconnectTimeout;
+	Session.PlayMovies = true;
+
+	Clear_Vector(&Session.Players);
+	Clear_Vector(&Session.Computers);
+
+	Spawner_Seat_Local();
+	Spawner_Seat_Humans();
+
+	return(true);
+}
+
+
+/// <summary>
 /// Assembles the session a launch asks for, in place of what a setup dialog commits.
 /// </summary>
 static void Spawner_Setup_Session(void)
@@ -552,6 +583,9 @@ bool Spawner_Prepare(bool & gameloaded)
 		if (!Spawner_Setup_Campaign()) {
 			return(false);
 		}
+		if (SpawnConfig.Is_Shared_House() && !Spawner_Setup_Shared_House()) {
+			return(false);
+		}
 	} else {
 		std::string fault;
 		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)) {
@@ -565,7 +599,7 @@ bool Spawner_Prepare(bool & gameloaded)
 		Scen->ScenarioName, SpawnConfig.Session_Identity_CRC());
 
 	// The network comes last, once the session it carries is fully assembled.
-	if (Session.Type == GAME_INTERNET && !Spawner_Wire_Network()) {
+	if (Session.Is_Networked() && !Spawner_Wire_Network()) {
 		return(false);
 	}
 

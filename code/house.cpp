@@ -3600,7 +3600,7 @@ bool HouseClass::Flag_To_Die(void)
 	if (!IsToWin && !IsToDie && !IsToLose) {
 		IsToDie = true;
 		BorrowedTime = TICKS_PER_MINUTE * Rule->SavourDelay;
-		if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+		if (Session.Is_Networked()) {
 			int time = Frame + std::max((int)BorrowedTime, (int)Session.MaxAhead);
 			BorrowedTime = 10 * ((time + 9) / 10) - Frame;
 		}
@@ -3631,7 +3631,7 @@ bool HouseClass::Flag_To_Win(bool silent)
 		IsToWin = true;
 		if (!silent) {
 			BorrowedTime = int(TICKS_PER_MINUTE * Rule->SavourDelay);
-			if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+			if (Session.Is_Networked()) {
 				int time = Frame + std::max((int)BorrowedTime, (int)Session.MaxAhead);
 				BorrowedTime = 10 * ((time + 9) / 10) - Frame;
 			}
@@ -3675,7 +3675,7 @@ bool HouseClass::Flag_To_Lose(bool silent)
 		IsToLose = true;
 		if (!silent) {
 			BorrowedTime = int(TICKS_PER_MINUTE * Rule->SavourDelay);
-			if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+			if (Session.Is_Networked()) {
 				int time = Frame + std::max((int)BorrowedTime, (int)Session.MaxAhead);
 				BorrowedTime = 10 * ((time + 9) / 10) - Frame;
 			}

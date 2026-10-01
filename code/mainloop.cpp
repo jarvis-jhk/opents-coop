@@ -164,7 +164,7 @@ void Motion_Capture(void)
 /// </summary>
 static void Check_For_Focus_Loss(void)
 {
-	bool parks = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Options.SimulateWhileUnfocused;
+	bool parks = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.Is_Networked() && !Options.SimulateWhileUnfocused;
 
 	while (!GameInFocus) {
 		// A running game already sleeps in Sync_Delay, so a pause here would only slow it.
@@ -210,7 +210,7 @@ static void Finish_Decided_Game(void)
 /// </summary>
 static int Target_Frame_Rate(void)
 {
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	if ((Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.Is_Networked()) {
 		return((int)NetTiming::Solo_Game_Speed_Frame_Rate(Options.GameSpeed));
 	}
 
@@ -618,18 +618,16 @@ void Message_Input(KeyNumType &input)
 	**	'to' portion.  At the other end, the buffer allocated to display the
 	**	message must be MAX_MESSAGE_LENGTH plus the size of "From: xxx (house)".
 	*/
-	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH && input >= KN_F1 && input < (KN_F1 + Session.MaxPlayers) && !Session.Messages.Is_Edit()) {
-		if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
-			/*
-			**	For a network game:
-			**	F1-F7 = "To <name> (house):" (only allowed if we're not in ObiWan mode)
-			**	F8 = "To All:"
-			*/
-			if (input==(KN_F1 + Session.MaxPlayers - 1)) {
-				Chat_Begin(ChatScopeType::Everyone);
-			} else if ((input - KN_F1) < Ipx.Num_Connections()) {
-				Chat_Begin(ChatScopeType::Player, Ipx.Connection_ID(input - KN_F1));
-			}
+	if (Session.Is_Networked() && input >= KN_F1 && input < (KN_F1 + Session.MaxPlayers) && !Session.Messages.Is_Edit()) {
+		/*
+		**	For a network game:
+		**	F1-F7 = "To <name> (house):" (only allowed if we're not in ObiWan mode)
+		**	F8 = "To All:"
+		*/
+		if (input==(KN_F1 + Session.MaxPlayers - 1)) {
+			Chat_Begin(ChatScopeType::Everyone);
+		} else if ((input - KN_F1) < Ipx.Num_Connections()) {
+			Chat_Begin(ChatScopeType::Player, Ipx.Connection_ID(input - KN_F1));
 		}
 	}
 
@@ -642,7 +640,7 @@ void Message_Input(KeyNumType &input)
 	/*
 	**	If a single character has been added to an edit buffer, update the display.
 	*/
-	if (rc == 1 && Session.Type != GAME_NORMAL) {
+	if (rc == 1 && (Session.Type != GAME_NORMAL || Session.Is_Networked())) {
 		Map.Flag_To_Redraw();
 	}
 
@@ -652,7 +650,7 @@ void Message_Input(KeyNumType &input)
 	**	cells to redraw; otherwise, let the map compute the cells to redraw,
 	**	by not force-drawing it, but just setting the IsToRedraw bit.
 	*/
-	if (rc==2 && Session.Type != GAME_NORMAL) {
+	if (rc==2 && (Session.Type != GAME_NORMAL || Session.Is_Networked())) {
 		if (copy_input==KN_ESC) {
 			Map.Flag_To_Redraw(GS_REDRAW_ALL);
 		} else {
@@ -663,14 +661,12 @@ void Message_Input(KeyNumType &input)
 	/*
 	**	Send a message
 	*/
-	if ((rc==3 || rc==4) && Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
-		if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
-			if (rc==3) {
-				Chat_Send(Session.Messages.Get_Edit_Buf());
-			} else {
-				Chat_Send(Session.Messages.Get_Overflow_Buf());
-				Session.Messages.Clear_Overflow_Buf();
-			}
+	if ((rc==3 || rc==4) && Session.Is_Networked()) {
+		if (rc==3) {
+			Chat_Send(Session.Messages.Get_Edit_Buf());
+		} else {
+			Chat_Send(Session.Messages.Get_Overflow_Buf());
+			Session.Messages.Clear_Overflow_Buf();
 		}
 
 		/*
@@ -691,7 +687,7 @@ void Message_Input(KeyNumType &input)
 /// </summary>
 void Multiplayer_Debug_Print(void)
 {
-	if (Session.Type == GAME_NORMAL) {
+	if (Session.Type == GAME_NORMAL && !Session.Is_Networked()) {
 		return;
 	}
 

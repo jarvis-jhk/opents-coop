@@ -102,6 +102,12 @@ bool SaveManagerClass::Request_Save_Game(char const * file_name, char const * de
 {
 	if (file_name == NULL || descr == NULL) return(false);
 
+	// A shared house campaign cannot be resumed yet, so nothing of it is saved.
+	if (Session.IsSharedHouse) {
+		DebugString("Ignoring a save request in a shared house campaign\n");
+		return(false);
+	}
+
 	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
 		bool saved = Save_Game(file_name, descr);
 		Record_Save_Outcome(notice, saved);
@@ -257,7 +263,7 @@ bool SaveManagerClass::Is_Multiplayer_Saving_Allowed(void) const
 /// </summary>
 void SaveManagerClass::Autosave_Service(void)
 {
-	if (Session.Play) return;
+	if (Session.Play || Session.IsSharedHouse) return;
 
 	bool single = Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH;
 
@@ -308,6 +314,7 @@ void SaveManagerClass::Quick_Save_Service(void)
 
 	if (!ScenarioActive || Session.Play) return;
 	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) return;
+	if (Session.IsSharedHouse) return;
 
 	char description[512];
 	std::snprintf(description, sizeof(description), Fetch_String(TXT_QUICKSAVE_DESCRIPTION), Scen->Description);

@@ -1335,7 +1335,7 @@ bool ObjectClass::Limbo(void)
 		/*
 		**	Remove the object from the logic processing list.
 		*/
-		if (Class_Of() != NULL && Class_Of()->IsSentient && (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH || Fetch_ID() != -2)) {
+		if (Class_Of() != NULL && Class_Of()->IsSentient && (!Session.Is_Networked() || Fetch_ID() != -2)) {
 			Logic.Remove(this);
 		}
 
@@ -1408,7 +1408,7 @@ bool ObjectClass::Unlimbo(Coord const & coord, Dir256 )
 
 					if (objclass != NULL) {
 
-						if (objclass->IsSentient && (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH || Fetch_ID() != -2)) {
+						if (objclass->IsSentient && (!Session.Is_Networked() || Fetch_ID() != -2)) {
 							Logic.Submit(this);
 						}
 
@@ -2261,7 +2261,7 @@ void ObjectClass::Compute_CRC(CRCEngine & crc) const
 	crc(Strength);
 	crc(IsDown);
 	crc(IsToDamage);
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	if (!Session.Is_Networked()) {
 		crc(IsToDisplay);
 		crc(IsSelected);
 	}

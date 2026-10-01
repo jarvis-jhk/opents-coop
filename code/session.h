@@ -523,6 +523,11 @@ class SessionClass
 		// Utility functions
 		//.....................................................................
 		int Create_Connections(void);
+		bool Is_Networked(void) const;
+		int Local_Seat_ID(void) const;
+		HouseClass * Seat_House(int id) const;
+		HouseClass * Acting_House(int id) const;
+		bool Is_Seat_House(HouseClass const * house) const;
 		bool Am_I_Master(void);
 		int Master_Player_ID(void) const;
 		void Announce_Master(void);
@@ -564,6 +569,15 @@ class SessionClass
 		// The type of session being played
 		//.....................................................................
 		GameType Type;
+
+		// A campaign mission played by several people who all command the scenario's player
+		// house. The session keeps the campaign's type. A person's network id is a seat number
+		// from 0, and SeatHouse names the house that carries that seat's name and color. A seat
+		// house owns nothing; the orders a seat sends act on SharedHouseID.
+		bool IsSharedHouse;
+		int SharedHouseID;
+		int SeatHouse[MAX_PLAYERS];
+
 		bool IsWDT;
 		int WDTTerritory;
 

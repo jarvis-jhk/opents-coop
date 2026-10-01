@@ -1787,12 +1787,12 @@ bool FootClass::Active_Click_With(ActionType action, Cell const & cell, bool is_
 					coord.Z += BRIDGE_LEPTON_HEIGHT;
 				}
 				int scenid = Scen->UniqueID;
-				if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+				if (Session.Is_Networked()) {
 					Scen->UniqueID = -3;
 					((AnimTypeClass *)Rule->MoveFlash)->YSortAdjust = -5000;
 				}
 				AnimClass * moveflash = new AnimClass(Rule->MoveFlash, coord);
-				if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) {
+				if (Session.Is_Networked()) {
 					Scen->UniqueID = scenid;
 					Anims.Delete(moveflash);
 					MoveFlashes.Add(moveflash);

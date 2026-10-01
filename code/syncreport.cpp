@@ -200,10 +200,10 @@ void Print_CRCs(EventClass const * events, int count, unsigned const * crc_ring,
 		GetLocalTime(&now);
 		Delete_Files_Older_Than(debug_dir, "SYNC_*.LOG", SYNC_REPORT_MAX_AGE_DAYS);
 		snprintf(filename, sizeof(filename), "%s\\SYNC_H%d_%02u-%02u-%04u_%02u-%02u-%02u_F%d.LOG",
-			debug_dir, PlayerPtr->HeapID,
+			debug_dir, Session.Local_Seat_ID(),
 			now.wDay, now.wMonth, now.wYear, now.wHour, now.wMinute, now.wSecond, Frame);
 	} else {
-		snprintf(filename, sizeof(filename), "SYNC%01d.TXT", PlayerPtr->HeapID);
+		snprintf(filename, sizeof(filename), "SYNC%01d.TXT", Session.Local_Seat_ID());
 	}
 
 	Mono_Clear_Screen();
@@ -578,8 +578,8 @@ void Print_CRCs(EventClass const * events, int count, unsigned const * crc_ring,
 			int const delay = ev.Data.FrameInfo.Delay;
 			int const checked = ev.Frame - delay;
 			char const * name = _NO_NAME;
-			if (ev.ID >= 0 && ev.ID < Houses.Count() && Houses[(HousesType)ev.ID] != NULL) {
-				name = Houses[(HousesType)ev.ID]->IniName.c_str();
+			if (Session.Seat_House(ev.ID) != NULL) {
+				name = Session.Seat_House(ev.ID)->IniName.c_str();
 			}
 			fprintf(fp,"\nOffending event from %s:\n", name);
 			fprintf(fp,"Type:         %d\n",ev.Type);

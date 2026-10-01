@@ -151,6 +151,11 @@ char const * SessionClass::GlobalPacketNames[] = {
 SessionClass::SessionClass(void)
 {
 	Type = GAME_NORMAL;
+	IsSharedHouse = false;
+	SharedHouseID = -1;
+	for (int index = 0; index < MAX_PLAYERS; index++) {
+		SeatHouse[index] = -1;
+	}
 	CommProtocol = DEFAULT_COMM_PROTOCOL;
 
 	Options.ScenarioIndex = 0;
@@ -363,7 +368,7 @@ int SessionClass::Create_Connections(void)
 	DebugString("Entering Create_Connections\n");
 
 
-	if (Session.Type != GAME_IPX && Session.Type != GAME_INTERNET) {
+	if (!Session.Is_Networked()) {
 		return(0);
 	}
 
@@ -376,21 +381,21 @@ int SessionClass::Create_Connections(void)
 		//.....................................................................
 		// Make sure the name matches before creating the connection
 		//.....................................................................
-		if (!stricmp(Players[i]->Name,
-			Houses[Players[i]->Player.ID]->IniName)) {
+		HouseClass * seat = Seat_House(Players[i]->Player.ID);
+		if (seat != NULL && !stricmp(Players[i]->Name, seat->IniName)) {
 
 			if (stricmp(Players[i]->Name, MasterPlayerName) == 0) {
 				MasterPlayerID = Players[i]->Player.ID;
 			}
 
-			Houses[Players[i]->Player.ID]->SquadID = Players[i]->Player.SquadID;
+			seat->SquadID = Players[i]->Player.SquadID;
 
 			unsigned int ip = ntohl(Session.Players[i]->Address.Get_IP());
 
 			DebugString("House[%d] IP = %X  Clan=%d\n",Players[i]->Player.ID, ip, Players[i]->Player.SquadID);
 
-			Houses[Players[i]->Player.ID]->IPAddress = ip;
-			Houses[Players[i]->Player.ID]->LostConnection = false;
+			seat->IPAddress = ip;
+			seat->LostConnection = false;
 
 			// To avoid connecting to myself, skip the 1st entry.
 			if (i > 0) {
@@ -412,6 +417,80 @@ int SessionClass::Create_Connections(void)
 }	// end of Create_Connections
 
 
+/// <summary>
+/// Is this game played in step with other machines? True for a network match and for a shared
+/// house campaign, which keeps the campaign's type.
+/// </summary>
+bool SessionClass::Is_Networked(void) const
+{
+	return(Type == GAME_IPX || Type == GAME_INTERNET || IsSharedHouse);
+}
+
+
+/// <summary>
+/// Returns the id this machine stamps on the events it sends: its own house, or in a shared
+/// house campaign its seat house.
+/// </summary>
+int SessionClass::Local_Seat_ID(void) const
+{
+	if (IsSharedHouse && Players.Count() > 0) {
+		return(Players[0]->Player.ID);
+	}
+	return(PlayerPtr != NULL ? PlayerPtr->HeapID : -1);
+}
+
+
+/// <summary>
+/// Returns the house that stands for a network id: the seat house in a shared house campaign,
+/// otherwise the house with that id. Returns NULL for an id that names neither.
+/// </summary>
+HouseClass * SessionClass::Seat_House(int id) const
+{
+	if (IsSharedHouse) {
+		if (id < 0 || id >= MAX_PLAYERS || SeatHouse[id] < 0 || SeatHouse[id] >= Houses.Count()) {
+			return(NULL);
+		}
+		return(Houses[SeatHouse[id]]);
+	}
+	if (id < 0 || id >= Houses.Count()) {
+		return(NULL);
+	}
+	return(Houses[id]);
+}
+
+
+/// <summary>
+/// Returns the house an event sent under a network id acts on: the shared house for a seat in
+/// a shared house campaign, otherwise the house with that id. Returns NULL for an id that names
+/// no seat or house.
+/// </summary>
+HouseClass * SessionClass::Acting_House(int id) const
+{
+	HouseClass * seat = Seat_House(id);
+	if (seat != NULL && IsSharedHouse) {
+		return(SharedHouseID >= 0 && SharedHouseID < Houses.Count() ? Houses[SharedHouseID] : NULL);
+	}
+	return(seat);
+}
+
+
+/// <summary>
+/// Is this house a person's seat in a shared house campaign, rather than a side in the mission?
+/// </summary>
+bool SessionClass::Is_Seat_House(HouseClass const * house) const
+{
+	if (!IsSharedHouse || house == NULL) {
+		return(false);
+	}
+	for (int index = 0; index < MAX_PLAYERS; index++) {
+		if (SeatHouse[index] == house->HeapID) {
+			return(true);
+		}
+	}
+	return(false);
+}
+
+
 /***************************************************************************
  * SessionClass::Am_I_Master -- tells if the local system is the "master"  *
  *                                                                         *
@@ -429,7 +508,7 @@ int SessionClass::Create_Connections(void)
  *=========================================================================*/
 bool SessionClass::Am_I_Master(void)
 {
-	return(PlayerPtr != NULL && PlayerPtr->HeapID == Master_Player_ID());
+	return(PlayerPtr != NULL && Local_Seat_ID() == Master_Player_ID());
 
 }	// end of Am_I_Master
 
@@ -442,6 +521,18 @@ bool SessionClass::Am_I_Master(void)
 /// </summary>
 int SessionClass::Master_Player_ID(void) const
 {
+	if (CommProtocol == COMM_PROTOCOL_MULTI_E_COMP && NetworkTimingPolicyOwner >= 0 && IsSharedHouse) {
+		if (Seat_House(NetworkTimingPolicyOwner) != NULL && Is_Network_Timing_Player_Active(NetworkTimingPolicyOwner)) {
+			return(NetworkTimingPolicyOwner);
+		}
+		for (int seat = 0; seat < MAX_PLAYERS; seat++) {
+			if (Seat_House(seat) != NULL && Is_Network_Timing_Player_Active(seat)) {
+				return(seat);
+			}
+		}
+		return(-1);
+	}
+
 	if (CommProtocol == COMM_PROTOCOL_MULTI_E_COMP && NetworkTimingPolicyOwner >= 0) {
 		for (int index = 0; index < Houses.Count(); index++) {
 			HouseClass const * house = Houses[index];
@@ -829,6 +920,8 @@ bool SessionClass::Log_To_File(FILE *out)
 		fprintf(out, "Type = IPX\n");
 	} else if (Session.Type == GAME_INTERNET) {
 		fprintf(out, "Type = INTERNET\n");
+	} else if (Session.IsSharedHouse) {
+		fprintf(out, "Type = SHARED HOUSE CAMPAIGN, house %d\n", Session.SharedHouseID);
 	} else {
 		fprintf(out, "Type = !!Unknown!!\n");
 	}
@@ -1457,7 +1550,7 @@ void SessionClass::Update_Progress(int percent)
 
 	CDTimerClass<SystemTimerClass> timer = 4 * TIMER_SECOND;
 
-	switch (Type) {
+	switch (Is_Networked() ? GAME_INTERNET : Type) {
 		case GAME_IPX:
 		case GAME_INTERNET: {
 				GlobalPacketType prog_packet;

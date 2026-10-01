@@ -184,6 +184,7 @@
 #include "savestream.h"
 #include "scheme.h"
 #include "session.h"
+#include "hotkeygroup.h"
 #include "shapeset.h"
 #include "stimer.h"
 #include "sun.h"
@@ -3474,7 +3475,12 @@ bool TechnoClass::Select(void)
 		*/
 		if (House->Is_Player_Control() && AllowVoice) {
 			if (Tag != NULL) {
-				Tag->Spring(TEVENT_SELECTED, this);
+				// The other machines learn of the selection through the event, at the same frame.
+				if (Session.Is_Networked()) {
+					OutList.push_back(EventClass(Session.Local_Seat_ID(), EventClass::SELECTED, TargetClass(this)));
+				} else {
+					Tag->Spring(TEVENT_SELECTED, this);
+				}
 			}
 			Response_Select();
 		}
@@ -7705,8 +7711,9 @@ void TechnoClass::Draw_Pips(Point2D const & bottomleft, Point2D const & center, 
 	**	Display what group this unit belongs to. This corresponds to the team
 	**	number assigned with the <CTRL> key.
 	*/
-	if (Group >= 0 && Group < 10) {
-		int group = Group+1;
+	int const hotkey_group = Hotkey_Group(this);
+	if (hotkey_group >= 0 && hotkey_group < 10) {
+		int group = hotkey_group+1;
 
 		if (group == 10) group = 0;
 
@@ -8429,7 +8436,7 @@ void TechnoClass::Compute_CRC(CRCEngine & crc) const
 	crc(IsLocked);
 	crc(IsInRecoilState);
 	crc(IsTethered);
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	if (!Session.Is_Networked()) {
 		crc(IsOwnedByPlayer);
 	}
 	DiscoveredBy.Compute_CRC(crc);

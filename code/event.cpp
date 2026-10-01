@@ -707,17 +707,17 @@ void EventClass::Execute(void)
 		Log_Event_Rejection(EventRejectReason::InvalidType, Type, -1, Type);
 		return;
 	}
-	if (!NetSemantic::Index_Is_Valid(ID, Houses.Count())) {
+	if (!Session.IsSharedHouse && !NetSemantic::Index_Is_Valid(ID, Houses.Count())) {
 		Log_Event_Rejection(EventRejectReason::InvalidOrigin, Type, ID, ID);
 		return;
 	}
-	if (Houses[ID] == NULL) {
+	if (Session.Acting_House(ID) == NULL) {
 		Log_Event_Rejection(EventRejectReason::MissingOrigin, Type, ID, ID);
 		return;
 	}
 
-	HouseClass * house = Houses[ID];
-	if (Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) {
+	HouseClass * house = Session.Acting_House(ID);
+	if (Session.Is_Networked()) {
 		bool requires_ownership = false;
 		TechnoClass * subject = Event_Subject(*this, requires_ownership);
 		if (requires_ownership) {
@@ -725,7 +725,7 @@ void EventClass::Execute(void)
 				return;
 			}
 			int const owner = subject->House != NULL ? subject->House->HeapID : -1;
-			if (!NetSemantic::Subject_Owner_Is_Valid(ID, owner)) {
+			if (!NetSemantic::Subject_Owner_Is_Valid(house->HeapID, owner)) {
 				Log_Event_Rejection(EventRejectReason::UnauthorizedSubject, Type, ID, owner);
 				return;
 			}
@@ -794,7 +794,12 @@ void EventClass::Execute(void)
 		**	Special self destruct action requested. This is active in the multiplayer mode.
 		*/
 		case DESTRUCT:
-			house->Flag_To_Die();
+			// Giving up a shared mission loses it for everybody, as it would for one player.
+			if (Session.IsSharedHouse) {
+				house->Flag_To_Lose();
+			} else {
+				house->Flag_To_Die();
+			}
 			break;
 
 		/*
@@ -832,7 +837,7 @@ void EventClass::Execute(void)
 		*/
 		case SELL:
 			techno = Data.Target.Whom.As_Techno();
-			if (techno && techno->IsActive && techno->House->HeapID == ID) {
+			if (techno && techno->IsActive && techno->House == house) {
 				if (techno->RTTI == RTTI_BUILDING || ((techno->RTTI == RTTI_UNIT || techno->RTTI == RTTI_AIRCRAFT) && Map[techno->Center_Coord()].Cell_Building() != NULL)) {
 					techno->Sell_Back(-1);
 				}
@@ -1110,6 +1115,18 @@ void EventClass::Execute(void)
 		/*
 		**	Request that the unit/infantry/aircraft go into idle mode.
 		*/
+		/*
+		**	A player selected an object. A campaign mission hands the player every house it
+		**	controls, so the trigger answers to those as well as to the sender's own house.
+		*/
+		case SELECTED:
+			techno = Data.Target.Whom.As_Techno();
+			if (techno != NULL && techno->IsActive && techno->Tag != NULL
+				&& (techno->House == house || (Session.Type == GAME_NORMAL && techno->House->Is_Player_Control()))) {
+				techno->Tag->Spring(TEVENT_SELECTED, techno);
+			}
+			break;
+
 		case IDLE:
 			techno = Data.Target.Whom.As_Techno();
 			if (techno != NULL && techno->IsActive && !techno->IsInLimbo && !techno->IsTethered) {
@@ -1231,8 +1248,8 @@ void EventClass::Execute(void)
 			}
 			Options.GameSpeed = Data.General.Value;
 
-			house = Houses[ID];
-			if (house != PlayerPtr && house != NULL) {
+			house = Session.Seat_House(ID);
+			if (ID != Session.Local_Seat_ID() && house != NULL) {
 				str = Fetch_String(TXT_PLAYER_CHANGED_SPEED);
 				if (str != NULL && strlen(str) != 0) {
 					sprintf(msg, str, Session.Shown_Name(house).c_str());
@@ -1281,25 +1298,25 @@ void EventClass::Execute(void)
 			// for (i=0;i<Data.Variable.Size;i++) {
 			// 	printf("%d\n", ((char *)Data.Variable.Pointer)[i]);
 			// }
-			if (ID != PlayerPtr->HeapID) {
+			if (ID != Session.Local_Seat_ID()) {
 				delete [] Data.Variable.Pointer;
 			}
 			break;
 
 		case REMOVEPLAYER:
 			index = Data.General.Value;
-			if (!NetSemantic::Index_Is_Valid(index, Houses.Count()) || Houses[index] == NULL) {
+			if (Session.Seat_House(index) == NULL) {
 				Log_Event_Rejection(EventRejectReason::InvalidRemovedHouse, Type, ID, index);
 				break;
 			}
-			if (!Houses[index]->Is_Human_Player()) {
+			if (!Session.Seat_House(index)->Is_Human_Player() && !Session.Is_Seat_House(Session.Seat_House(index))) {
 				break;
 			}
 
 			DebugString("Executing REMOVEPLAYER event. Frame is %d\n", ::Frame);
 			SaveManager.Disable_Multiplayer_Saving();
 			Session.Remove_Network_Timing_Player(index, Frame >= 0 ? static_cast<unsigned int>(Frame) : 0u);
-			house = Houses[index];
+			house = Session.Seat_House(index);
 			if (house->IsObserver) {
 				break;
 			}
@@ -1321,8 +1338,8 @@ void EventClass::Execute(void)
 			Session.LatencyFudge = Data.General.Value;
 			DebugString("LatencyFudge is %d\n", Session.LatencyFudge);
 
-			house = Houses[ID];
-			if (house != PlayerPtr && house != NULL) {
+			house = Session.Seat_House(ID);
+			if (ID != Session.Local_Seat_ID() && house != NULL) {
 				str = Fetch_String(TXT_PLAYER_CHANGED_LATENCY);
 				if (str != NULL && strlen(str) != 0) {
 					sprintf(msg, str, Session.Shown_Name(house).c_str());

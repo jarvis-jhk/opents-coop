@@ -67,6 +67,7 @@ class SpawnerConfigClass
 
 		void Read_INI(INIClass const & ini);
 		LaunchType Launch_Type(void) const;
+		bool Is_Shared_House(void) const;
 		int Session_Identity_CRC(void) const;
 
 		// The rules' tables are handed in, so a reading can be judged without the game running.
