@@ -148,6 +148,32 @@ const char * Map_Select_Advance(ScenarioClass * scenario, const char * map_name)
 
 
 /// <summary>
+/// Finds the first stage of the scenario's campaign that plays the named map.
+/// </summary>
+/// <returns>The stage's identifier, or -1 when no stage of the campaign plays that map.</returns>
+int Map_Select_Stage_Of(ScenarioClass const * scenario, char const * map_name)
+{
+	if (scenario == NULL || map_name == NULL || scenario->PlayerHouse < 0 || scenario->PlayerHouse >= HouseTypes.Count()) {
+		return(-1);
+	}
+
+	MapChoice choices;
+	int found = -1;
+	if (choices.Initialize((const char*)HouseTypes[scenario->PlayerHouse]->IniName)) {
+		for (int id = 0; id <= 32767 && choices.Find_Stage_By_ID(static_cast<unsigned short>(id)) != nullptr; id++) {
+			char const * name = choices.Find_Stage_By_ID(static_cast<unsigned short>(id))->Get_Scenario_Name();
+			if (name != NULL && stricmp(name, map_name) == 0) {
+				found = id;
+				break;
+			}
+		}
+	}
+	choices.Deinit();
+	return(found);
+}
+
+
+/// <summary>
 /// Advances the campaign to a map without showing the selection screen.
 /// This routine is used when the destination is already decided and only the bookkeeping
 /// is wanted. The map must be one of the choices offered by the scenario's current stage.

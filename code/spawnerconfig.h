@@ -111,6 +111,9 @@ class SpawnerConfigClass
 		bool Firestorm = true;
 		int CampaignDifficulty = 1;
 		int CampaignCDifficulty = 1;
+		int CampaignStage = -1;
+		int CarryOverMoney = 0;
+		int CarryOverTimer = 0;
 		bool CoachMode = false;
 		bool AutoSurrender = true;
 		bool AttackNeutralUnits = false;

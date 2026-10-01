@@ -242,6 +242,13 @@ int SpawnerConfigClass::Session_Identity_CRC(void) const
 	crc(CampaignID);
 	crc(CampaignDifficulty);
 	crc(CampaignCDifficulty);
+
+	// Left out when unset, so a file that names neither keeps the identity it had before them.
+	if (CampaignStage >= 0 || CarryOverMoney != 0 || CarryOverTimer != 0) {
+		crc(CampaignStage);
+		crc(CarryOverMoney);
+		crc(CarryOverTimer);
+	}
 	crc(LoadSaveGame);
 	crc(SaveGameName.c_str());
 
@@ -499,6 +506,9 @@ void SpawnerConfigClass::Read_INI(INIClass const & ini)
 	Firestorm = ini.Get_Bool(SETTINGS, "Firestorm", Firestorm);
 	CampaignDifficulty = ini.Get_Int(SETTINGS, "DifficultyModeHuman", CampaignDifficulty);
 	CampaignCDifficulty = ini.Get_Int(SETTINGS, "DifficultyModeComputer", CampaignCDifficulty);
+	CampaignStage = ini.Get_Int(SETTINGS, "CampaignStage", CampaignStage);
+	CarryOverMoney = ini.Get_Int(SETTINGS, "CarryOverMoney", CarryOverMoney);
+	CarryOverTimer = ini.Get_Int(SETTINGS, "CarryOverTimer", CarryOverTimer);
 
 	// One key serves twice: the port the game listens on, and this machine's tunnel number.
 	TunnelId = ini.Get_Int(SETTINGS, "Port", TunnelId);

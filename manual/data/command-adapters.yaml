@@ -280,6 +280,16 @@ fixed_controls:
     sites:
       - { file: code/ui/uishell.cpp, function: UIShellClass::Handle_Window_Event, expression: VK_F6, guard: _DEBUG }
 
+  - id: fixed:leave-shared-campaign
+    title: Leave shared campaign
+    description: Ends participation while waiting for the host to choose the next mission or replay.
+    audience: player
+    bindings: [Escape]
+    context: Shared campaign mission-choice wait
+    availability: *all
+    sites:
+      - { file: code/sharedcampaign.cpp, function: Shared_Campaign_Wait, expression: KN_ESC }
+
 fixed_exclusions:
   - site: { file: code/debug.cpp, function: Debug_Key, expression: KN_BUTTON, guard: _DEBUG }
     reason: Filters mouse-button events before the debug key switch; it is not a control.

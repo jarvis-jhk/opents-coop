@@ -104,6 +104,7 @@
 #include "movieskip.h"
 #include "mplayer.h"
 #include "msgloop.h"
+#include "sharedcampaign.h"
 #include "netdlg.h"
 #include "netdlg2.h"
 #include "netglobal.h"
@@ -706,6 +707,10 @@ void IPX_Call_Back(void)
 
 						case NET_LOAD_GAME:
 							SaveManager.Multiplayer_Load_Receive(Session.GPacket.LoadGame.Slot);
+							break;
+
+						case NET_SHARED_MISSION:
+							Shared_Campaign_Receive(Session.GPacket);
 							break;
 
 						case NET_PROGRESS_REPORT:

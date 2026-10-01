@@ -2196,6 +2196,19 @@ fixed_controls:
   _provenance:
     source: code/ui/uishell.cpp
     guard: _DEBUG
+- id: fixed:leave-shared-campaign
+  route_id: fixed-leave-shared-campaign
+  kind: fixed
+  title: Leave shared campaign
+  description: Ends participation while waiting for the host to choose the next mission or replay.
+  audience: player
+  availability: *id001
+  bindings:
+  - Escape
+  context: Shared campaign mission-choice wait
+  _provenance:
+    source: code/sharedcampaign.cpp
+    guard: null
 launch_options:
 - id: launch:help
   route_id: help

@@ -1263,6 +1263,7 @@ restart:
 			for (int index = 0; index < ARRAY_SIZE(Environment.Globals); index++) {
 				Scen->Set_Global_To(index, Environment.Globals[index]);
 			}
+			Spawner_Apply_Campaign_State();
 		}
 
 		/*
@@ -5254,6 +5255,10 @@ class DeleteWaypointCommandClass : public CommandClass
 		}
 
 		virtual void Execute(void) const {
+			if (Session.IsSharedHouse) {
+				return;
+			}
+
 			WaypointClass * waypoint = Map.DraggedWaypoint;
 			bool held = (waypoint != NULL);
 

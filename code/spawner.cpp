@@ -28,6 +28,7 @@
 #include "ipxmgr.h"
 #include "language/language.h"
 #include "loaddlg.h"
+#include "mapsel.h"
 #include "mplayer.h"
 #include "netshare.h"
 #include "msgbox.h"
@@ -51,6 +52,14 @@ static_assert(HOUSE_NAME_MAX == MPLAYER_NAME_MAX,
 static bool SpawnRequested = false;
 static bool SpawnConsumed = false;
 static SpawnerConfigClass SpawnConfig;
+
+// The launch file as read, kept so a shared house campaign can write its next mission into it.
+static CCINIClass SpawnINI;
+
+// A shared house campaign starts the game again on its next mission once this one has ended.
+static bool RelaunchRequested = false;
+
+extern HANDLE AppMutex;
 
 
 /// <summary>
@@ -406,6 +415,11 @@ static bool Spawner_Resume(bool & gameloaded)
 /// <returns>bool; Can the campaign the file describes be played?</returns>
 static bool Spawner_Setup_Campaign(void)
 {
+	if (SpawnConfig.CampaignStage < -1 || SpawnConfig.CampaignStage > 32767 ||
+		SpawnConfig.CarryOverMoney < 0 || SpawnConfig.CarryOverTimer < 0) {
+		return(Spawner_Refuse("CampaignStage must be -1 or 0 to 32767; carried money and timer must be nonnegative."));
+	}
+
 	if (SpawnConfig.CampaignDifficulty < 0 || SpawnConfig.CampaignDifficulty >= DIFF_COUNT ||
 		SpawnConfig.CampaignCDifficulty < 0 || SpawnConfig.CampaignCDifficulty >= DIFF_COUNT) {
 		return(Spawner_Refuse("A campaign is played at difficulty 0, 1 or 2, and the file says %d and %d.",
@@ -497,6 +511,112 @@ static void Spawner_Setup_Session(void)
 
 
 /// <summary>
+/// Puts the campaign mission the launch file names at the map selection stage it belongs to
+/// and pays it the money an earlier mission carried over. Called once the mission has loaded,
+/// because loading it resets both.
+/// </summary>
+void Spawner_Apply_Campaign_State(void)
+{
+	if (SpawnConfig.CampaignStage >= 0) {
+		Scen->Stage = SpawnConfig.CampaignStage;
+	} else if (Session.IsSharedHouse) {
+		// The first mission of a shared campaign is usually launched by its map alone.
+		int const stage = Map_Select_Stage_Of(Scen, Scen->ScenarioName);
+		if (stage >= 0) {
+			Scen->Stage = stage;
+		}
+	}
+
+	if (SpawnConfig.CarryOverMoney > 0) {
+		double money = (double)SpawnConfig.CarryOverMoney * Scen->CarryOverPercent;
+		if (Scen->CarryOverCap != -1) {
+			money = std::min<double>(money, Scen->CarryOverCap);
+		}
+		PlayerPtr->Refund_Money((int)money);
+		PlayerPtr->Control.InitialCredits += (int)money;
+	}
+
+	if (Scen->IsInheritTimer && SpawnConfig.CarryOverTimer > 0) {
+		Scen->MissionTimer = SpawnConfig.CarryOverTimer;
+		Scen->MissionTimer.Start();
+	}
+
+	DebugString("[Spawner] Campaign stage %d, %d credits carried over.\n", (int)Scen->Stage, SpawnConfig.CarryOverMoney);
+}
+
+
+/// <summary>
+/// Writes the mission a shared house campaign plays next into the launch file and asks for
+/// the game to start again on it once this process has ended. Every machine writes its own
+/// file alike, so the restarted machines find each other in the same mission.
+/// </summary>
+/// <param name="scenario">The scenario file of the next mission.</param>
+/// <param name="stage">Its map selection stage.</param>
+/// <param name="advance">Is this a new mission? Its flags, carried money and seed then follow
+/// the mission just won; a replay keeps the file's own.</param>
+bool Spawner_Continue_Shared_Campaign(char const * scenario, int stage, bool advance)
+{
+	SpawnINI.Put_String("Settings", "Scenario", scenario);
+	SpawnINI.Put_Int("Settings", "CampaignStage", stage);
+
+	if (advance) {
+		SpawnINI.Put_Int("Settings", "CarryOverMoney", Environment.CarryOverMoney);
+		SpawnINI.Put_Int("Settings", "CarryOverTimer", Environment.MissionTimer);
+		SpawnINI.Put_Int("Settings", "Seed", static_cast<int>(static_cast<unsigned int>(SpawnConfig.Seed) + 1u));
+		for (int index = 0; index < SpawnerConfigClass::GLOBAL_FLAG_COUNT; index++) {
+			std::string const entry = "GlobalFlag" + std::to_string(index);
+			SpawnINI.Put_Bool("GlobalFlags", entry.c_str(), Environment.Globals[index]);
+		}
+	}
+
+	CCFileClass file("SPAWN.INI");
+	if (!SpawnINI.Save(file, false)) {
+		DebugString("[Spawner] SPAWN.INI could not be written; the campaign stops here.\n");
+		return(false);
+	}
+
+	DebugString("[Spawner] Next shared mission: %s, stage %d.\n", scenario, stage);
+	RelaunchRequested = true;
+	return(true);
+}
+
+
+/// <summary>
+/// Starts the game again with the command line it was started with. The network and the
+/// single-instance lock are released first, so the new process can claim both.
+/// </summary>
+static void Spawner_Relaunch(void)
+{
+	Ipx.Shutdown();
+
+	if (AppMutex != NULL) {
+		CloseHandle(AppMutex);
+		AppMutex = NULL;
+	}
+
+	char path[MAX_PATH];
+	DWORD const path_length = GetModuleFileNameA(NULL, path, sizeof(path));
+	if (path_length == 0 || path_length >= sizeof(path)) {
+		DebugString("[Spawner] The game's own path is unknown; it cannot start again.\n");
+		return;
+	}
+
+	std::string command = GetCommandLineA();
+	STARTUPINFOA startup = {};
+	startup.cb = sizeof(startup);
+	PROCESS_INFORMATION process = {};
+	if (!CreateProcessA(path, command.data(), NULL, NULL, FALSE, 0, NULL, NULL, &startup, &process)) {
+		DebugString("[Spawner] Starting the next mission failed with error %lu.\n", GetLastError());
+		return;
+	}
+
+	CloseHandle(process.hThread);
+	CloseHandle(process.hProcess);
+	DebugString("[Spawner] Started the game again for the next mission.\n");
+}
+
+
+/// <summary>
 /// Records that a client asked the game to launch what SPAWN.INI describes.
 /// </summary>
 void Spawner_Request(void)
@@ -543,6 +663,9 @@ int Spawner_Session_Identity(void)
 bool Spawner_Prepare(bool & gameloaded)
 {
 	if (SpawnConsumed) {
+		if (RelaunchRequested) {
+			Spawner_Relaunch();
+		}
 		return(false);
 	}
 
@@ -551,9 +674,8 @@ bool Spawner_Prepare(bool & gameloaded)
 		return(Spawner_Refuse("SPAWN.INI is missing, and it says what to launch."));
 	}
 
-	CCINIClass ini;
-	ini.Load(file, false);
-	SpawnConfig.Read_INI(ini);
+	SpawnINI.Load(file, false);
+	SpawnConfig.Read_INI(SpawnINI);
 
 	SpawnConsumed = true;
 

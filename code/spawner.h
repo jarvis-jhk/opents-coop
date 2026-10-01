@@ -17,3 +17,5 @@ bool Spawner_Is_Active(void);
 bool Spawner_Prepare(bool & gameloaded);
 int Spawner_Session_Identity(void);
 void Spawner_Announce_Master(void);
+void Spawner_Apply_Campaign_State(void);
+bool Spawner_Continue_Shared_Campaign(char const * scenario, int stage, bool advance);

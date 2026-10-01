@@ -168,6 +168,7 @@ enum NetCommandType {
 	NET_DESYNC_HEARTBEAT,		// Sent every second while the out-of-sync dialog halts the game.
 	NET_DESYNC_CONTINUE,		// The master's decision to play on without the players out of sync.
 	NET_LOAD_GAME,				// The master names the multiplayer save every machine loads.
+	NET_SHARED_MISSION,			// The master names the mission a shared house campaign plays next.
 };
 
 //---------------------------------------------------------------------------
@@ -385,6 +386,16 @@ struct GlobalPacketType {
 		struct {
 			unsigned short Slot;
 		} LoadGame;
+
+		/*
+		 * This names the mission a shared house campaign plays next, by its map selection stage
+		 * and its scenario file, or a stage of -1 to end the campaign. It accompanies the
+		 * NET_SHARED_MISSION command.
+		 */
+		struct {
+			int Stage;
+			char Scenario[64];
+		} SharedMission;
 	};
 };
 #pragma pack()

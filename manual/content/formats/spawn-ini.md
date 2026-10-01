@@ -87,6 +87,16 @@ As the mission begins, a message names its difficulty. The name is `DifficultyNa
 
 Of the [match options](#the-options-every-house-plays-under), a campaign mission uses only `GameSpeed`, `Firestorm` and `Seed`.
 
+## A shared-house campaign
+
+With `IsSinglePlayer=yes` and at least one `[OtherN]` player, every player controls the mission's `[Basic] Player=` house. Each machine keeps its own name, color and network address; orders execute in seat order. All players use the same mission, campaign, difficulty pair, seed and carry-over values. Use matching builds and target platforms on every machine.
+
+After a win, the host selects the next mission from the map-selection screen or the mission’s preset successor. After a loss, the host chooses whether to replay. Campaign-ending and one-time missions exit without restarting. Other players wait for that choice for at most `ConnTimeout` ticks, as defined under [A game against other machines](#a-game-against-other-machines). Each machine writes the selected mission into its own `SPAWN.INI` and starts another game process with the original command line. Keep the launch file writable and keep every player connected through the transition; the next launch retains the original roster. If writing the file or starting the process fails, that machine stops advancing.
+
+`CampaignStage` sets the current map-selection stage, from `0` to `32767`. Its default, `-1`, finds the first stage that names the launched map in a shared campaign; if no stage names the map, the mission keeps its initial stage. A single-player launch keeps its usual initial stage. `CarryOverMoney` sets the previous mission's unspent credits, and `CarryOverTimer` sets its remaining timer in simulation ticks. Both take nonnegative integers and default to zero. The new mission applies its carry-over percentage and cap to the money and inherits the timer only with `TimerInherit=yes`. A won mission writes those values and the global flags for the next launch; a replay keeps the values that started the lost mission.
+
+Shared campaigns disable saving, autosaving and waypoint editing. Hotkey groups remain local to each player and do not change the mission’s script groups. A mission requesting dropship loadout selection is refused because that choice is not synchronized. Leaving ends that player's participation; surrender loses the mission for the shared house.
+
 ## The options every house plays under
 
 These `[Settings]` keys set the rules of a skirmish or a game against other machines. In a game against other machines, write them the same in every machine's file. `BuildOffAlly` is the one exception, as described below.

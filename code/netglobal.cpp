@@ -110,6 +110,7 @@ namespace NetGlobal
 			case NET_DESYNC_HEARTBEAT:
 			case NET_DESYNC_CONTINUE:
 			case NET_LOAD_GAME:
+			case NET_SHARED_MISSION:
 				return(true);
 
 			default:
@@ -176,6 +177,18 @@ namespace NetGlobal
 				}
 				break;
 
+			case NET_SHARED_MISSION:
+				if (!Sender_Is_Master(context)) {
+					return(DecodeError::SENDER_NOT_MASTER);
+				}
+				if (packet.SharedMission.Stage < -1 || packet.SharedMission.Stage > 32767) {
+					return(DecodeError::INVALID_CAMPAIGN_STAGE);
+				}
+				if (!Has_Terminator(packet.SharedMission.Scenario, sizeof(packet.SharedMission.Scenario))) {
+					return(DecodeError::UNTERMINATED_NAME);
+				}
+				break;
+
 			case NET_LOAD_GAME:
 				if (!Sender_Is_Master(context)) {
 					return(DecodeError::SENDER_NOT_MASTER);
@@ -237,6 +250,7 @@ namespace NetGlobal
 			case DecodeError::AMBIGUOUS_SENDER: return("ambiguous session-member endpoint");
 			case DecodeError::SENDER_NOT_MASTER: return("sender is not the master");
 			case DecodeError::INVALID_SAVE_SLOT: return("invalid saved game slot");
+			case DecodeError::INVALID_CAMPAIGN_STAGE: return("invalid campaign stage");
 			case DecodeError::COUNT: break;
 		}
 

@@ -144,6 +144,7 @@
 #include "sdl/sdlwindow.h"
 #include "session.h"
 #include "hotkeygroup.h"
+#include "sharedcampaign.h"
 #include "smudge.h"
 #include "spawnhouse.h"
 #include "stats.h"
@@ -417,6 +418,10 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 	}
 
 	if (Scen->StartingDropships > 0) {
+		if (Session.IsSharedHouse) {
+			WWMessageBox().Process("Shared campaigns do not support dropship loadout selection yet.", TXT_OK);
+			return(false);
+		}
 		Dropship_Screen();
 	}
 
@@ -1276,6 +1281,14 @@ void Do_Win(void)
 			return;
 		}
 
+		// A shared campaign plays its next mission in a new process, which every machine starts.
+		if (Session.IsSharedHouse) {
+			Shared_Campaign_Next(true);
+			GameActive = false;
+			Show_Mouse();
+			return;
+		}
+
 		/*
 		** Hack section.  If it's allied scenario 10, variation A, then skip the
 		** score and map selection, don't increment scenario, and set it to
@@ -1409,6 +1422,12 @@ void Do_Lose(void)
 	*/
 	Draw_Menu_Background();
 	Show_Mouse();
+
+	if (Session.IsSharedHouse) {
+		Shared_Campaign_Next(false);
+		GameActive = false;
+		return;
+	}
 
 	if (!Session.Play && !WWMessageBox().Process(TXT_TO_REPLAY, TXT_YES, TXT_NO)) {
 		Keyboard->Clear();

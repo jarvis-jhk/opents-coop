@@ -7,10 +7,11 @@
  * See LICENSE.md for applicable additional terms and warranty disclaimers.
  ******************************************************************************/
 
+
 #pragma once
 
-class ScenarioClass;
+struct GlobalPacketType;
 
-const char * Map_Selection(ScenarioClass * scenario);
-const char * Map_Select_Advance(ScenarioClass * scenario, const char * map_name);
-int Map_Select_Stage_Of(ScenarioClass const * scenario, char const * map_name);
+
+bool Shared_Campaign_Next(bool won);
+void Shared_Campaign_Receive(GlobalPacketType const & packet);

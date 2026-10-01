@@ -369,6 +369,28 @@ int main(void)
 		Check(config.CampaignDifficulty == 0 && config.CampaignCDifficulty == 2,
 			"the two difficulties are read apart");
 		Check(config.CampaignID == -1, "a mission outside any campaign says so");
+		Check(!config.Is_Shared_House(), "one campaign player needs no shared house");
+		Check(config.CampaignStage == -1 && config.CarryOverMoney == 0 && config.CarryOverTimer == 0,
+			"an unwritten campaign state carries nothing");
+		config.HumanCount = 2;
+		Check(config.Is_Shared_House(), "two campaign players share the scenario house");
+		config.LoadSaveGame = true;
+		Check(!config.Is_Shared_House(), "a resume does not infer shared play from its roster");
+	}
+	{
+		char const state[] = "[Settings]\nIsSinglePlayer=yes\nCampaignStage=7\nCarryOverMoney=4000\nCarryOverTimer=900\n";
+		SpawnerConfigClass config = Read(state, sizeof(state) - 1);
+		Check(config.CampaignStage == 7 && config.CarryOverMoney == 4000 && config.CarryOverTimer == 900,
+			"campaign carry-over state is read from the launch file");
+		SpawnerConfigClass changed = config;
+		changed.CampaignStage++;
+		Check(config.Session_Identity_CRC() != changed.Session_Identity_CRC(), "peers must agree on the campaign stage");
+		changed = config;
+		changed.CarryOverMoney++;
+		Check(config.Session_Identity_CRC() != changed.Session_Identity_CRC(), "peers must agree on carried money");
+		changed = config;
+		changed.CarryOverTimer++;
+		Check(config.Session_Identity_CRC() != changed.Session_Identity_CRC(), "peers must agree on the inherited timer");
 	}
 
 	/*

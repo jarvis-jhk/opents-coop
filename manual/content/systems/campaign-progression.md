@@ -48,7 +48,9 @@ related:
 
 When the player wins a campaign mission, the game plays the mission's ending movies, decides which mission comes next and loads it, without returning to the menus. A few pieces of state are copied out of the won mission and applied to the next one. This page covers that sequence and the carried state. Each setting's page covers what the setting does by itself.
 
-Skirmish and multiplayer games never advance to another mission. Winning or losing one of those ends the game.
+A [shared-house campaign](/formats/spawn-ini/#a-shared-house-campaign) advances by writing each machine’s launch file and starting a new process. Its host chooses the next mission or replay.
+
+Skirmish and multiplayer matches never advance to another mission. Winning or losing one of those ends the game.
 
 ## Campaigns and stages
 
@@ -58,7 +60,7 @@ The route from one mission to the next is not in `battle.ini`. It is in `MAPSEL.
 
 The campaign records its progress as a **stage number**: the current stage's position in the house's list. No mission file sets it. Each advance sets the number to the stage chosen, and a replay, a restart or a loaded save keeps the number the mission had.
 
-Every other mission load starts at the first stage in the list. That includes a new campaign and a campaign mission that a launch file starts partway through a chain. Winning such a mission offers the first stage's choices. With `SkipMapSelect=yes`, its `NextScenario` is matched against those choices, and unless one of them names it, the choice fails as [When the choice fails](#when-the-choice-fails) describes.
+Every other mission load starts at the first stage in the list. That includes a new campaign and a single-player launch partway through a chain without `CampaignStage`. [Client launch files](/formats/spawn-ini/#a-shared-house-campaign) describe explicit stages and shared-campaign stage lookup. Winning such a mission offers the first stage's choices. With `SkipMapSelect=yes`, its `NextScenario` is matched against those choices, and unless one of them names it, the choice fails as [When the choice fails](#when-the-choice-fails) describes.
 
 Two rules follow from this:
 

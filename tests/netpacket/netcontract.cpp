@@ -154,11 +154,13 @@ void Test_Reader(void)
 void Test_Event_Contract(void)
 {
 	Check(EventClass::LATENCYFUDGE == 35, "the last inherited event keeps numeric ID 35");
-	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::LAST_EVENT == 38, "the timing report and the multi-abandon append without renumbering inherited events");
+	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::SELECTED == 38 && EventClass::LAST_EVENT == 39, "new events append without renumbering inherited events");
 	Check(EventClass::EventLength[EventClass::NETWORK_REPORT] == sizeof(NetworkReportType) && sizeof(NetworkReportType) == 6, "NETWORK_REPORT uses its six-byte payload");
 	Check(std::strcmp(EventClass::EventNames[EventClass::NETWORK_REPORT], "NETWORK_REPORT") == 0, "NETWORK_REPORT has a diagnostic name");
 	Check(EventClass::EventLength[EventClass::ABANDON_COUNT] == sizeof(AbandonCountType) && sizeof(AbandonCountType) == 12, "ABANDON_COUNT uses its twelve-byte payload");
 	Check(std::strcmp(EventClass::EventNames[EventClass::ABANDON_COUNT], "ABANDON_COUNT") == 0, "ABANDON_COUNT has a diagnostic name");
+	Check(EventClass::EventLength[EventClass::SELECTED] == sizeof(TargetClass), "SELECTED carries one target");
+	Check(std::strcmp(EventClass::EventNames[EventClass::SELECTED], "SELECTED") == 0, "SELECTED has a diagnostic name");
 	Check(EventClass::NETWORK_RTT_UNAVAILABLE == UINT16_MAX, "the unavailable RTT sentinel is uint16 max");
 	Check(sizeof(EventClass) == 46 && EnvelopeSize == 17, "the report fits without changing full or envelope event layouts");
 }
@@ -876,6 +878,29 @@ void Test_Global_Packets(void)
 	packet.LoadGame.Slot = MULTIPLAYER_SAVE_SLOTS;
 	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::INVALID_SAVE_SLOT,
 		"a load request needs a slot the numbered saves can hold");
+
+
+	packet = Global_Packet(NET_SHARED_MISSION);
+	packet.SharedMission.Stage = 3;
+	std::strcpy(packet.SharedMission.Scenario, "Maps/Missions/gdi2a.map");
+	Check_Global_Error(packet, packet_size, outsider, NetGlobal::DecodeError::SENDER_NOT_MEMBER,
+		"a campaign decision requires a session member");
+	Check_Global_Error(packet, packet_size, guest, NetGlobal::DecodeError::SENDER_NOT_MASTER,
+		"a campaign decision requires the master");
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::NONE,
+		"the master may name the next campaign mission");
+	for (int stage : {-2, 32768}) {
+		packet.SharedMission.Stage = stage;
+		Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::INVALID_CAMPAIGN_STAGE,
+			"a campaign decision rejects a stage outside its stored range");
+	}
+	packet.SharedMission.Stage = -1;
+	packet.SharedMission.Scenario[0] = '\0';
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::NONE,
+		"the master may end the campaign without naming another mission");
+	std::memset(packet.SharedMission.Scenario, 'x', sizeof(packet.SharedMission.Scenario));
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::UNTERMINATED_NAME,
+		"a campaign decision requires a terminated scenario name");
 
 	NetGlobal::RejectionCounters counters;
 	NetGlobal::RejectionRecord first = counters.Record(NetGlobal::DecodeError::INVALID_LENGTH);
