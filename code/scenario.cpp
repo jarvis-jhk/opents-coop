@@ -417,6 +417,10 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 	}
 
 	if (Scen->StartingDropships > 0) {
+		if (Session.IsSharedHouse) {
+			WWMessageBox().Process("Shared campaigns do not support dropship loadout selection yet.", TXT_OK);
+			return(false);
+		}
 		Dropship_Screen();
 	}
 
@@ -1276,6 +1280,12 @@ void Do_Win(void)
 			return;
 		}
 
+		if (Session.IsSharedHouse) {
+			GameActive = false;
+			Show_Mouse();
+			return;
+		}
+
 		/*
 		** Hack section.  If it's allied scenario 10, variation A, then skip the
 		** score and map selection, don't increment scenario, and set it to
@@ -1409,6 +1419,11 @@ void Do_Lose(void)
 	*/
 	Draw_Menu_Background();
 	Show_Mouse();
+
+	if (Session.IsSharedHouse) {
+		GameActive = false;
+		return;
+	}
 
 	if (!Session.Play && !WWMessageBox().Process(TXT_TO_REPLAY, TXT_YES, TXT_NO)) {
 		Keyboard->Clear();

@@ -5254,6 +5254,10 @@ class DeleteWaypointCommandClass : public CommandClass
 		}
 
 		virtual void Execute(void) const {
+			if (Session.IsSharedHouse) {
+				return;
+			}
+
 			WaypointClass * waypoint = Map.DraggedWaypoint;
 			bool held = (waypoint != NULL);
 

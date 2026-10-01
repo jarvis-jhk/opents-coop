@@ -659,7 +659,7 @@ test('A match against other machines is assembled whole and wired to its network
 		'SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)',
 		'Spawner_Setup_Session();',
 		'SpawnConfig.Session_Identity_CRC()',
-		'Session.Type == GAME_INTERNET && !Spawner_Wire_Network()',
+		'Session.Is_Networked() && !Spawner_Wire_Network()',
 	], 'the match is judged, assembled and named before its network is opened');
 
 	assertOrdered(functionBody(spawner, 'static bool Spawner_Wire_Network(void)'), [
@@ -1512,7 +1512,7 @@ test('A solo game may keep running while the window is away', () => {
 	assertOrdered(
 		functionBody(source('code/mainloop.cpp'), 'static void Check_For_Focus_Loss(void)'),
 		[
-			'bool parks = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Options.SimulateWhileUnfocused;',
+			'bool parks = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.Is_Networked() && !Options.SimulateWhileUnfocused;',
 			'while (!GameInFocus) {',
 			'if (!parks) {',
 			'break;',

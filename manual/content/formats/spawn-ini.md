@@ -87,6 +87,14 @@ As the mission begins, a message names its difficulty. The name is `DifficultyNa
 
 Of the [match options](#the-options-every-house-plays-under), a campaign mission uses only `GameSpeed`, `Firestorm` and `Seed`.
 
+## A shared-house campaign
+
+With `IsSinglePlayer=yes` and at least one `[OtherN]` player, every player controls the mission's `[Basic] Player=` house. Each machine keeps its own name, color and network address; orders execute in seat order. All players use the same mission, campaign, difficulty pair, seed and global flags. Use matching builds and target platforms on every machine.
+
+This branch plays one mission per launch. A win or loss ends the session after its ending presentation. Start the next mission with a new launch file on each machine.
+
+Shared campaigns disable saving, autosaving and waypoint editing. Hotkey groups remain local to each player and do not change the mission's script groups. A mission requesting dropship loadout selection is refused because that choice is not synchronized. Leaving ends that player's participation; surrender loses the mission for the shared house.
+
 ## The options every house plays under
 
 These `[Settings]` keys set the rules of a skirmish or a game against other machines. In a game against other machines, write them the same in every machine's file. `BuildOffAlly` is the one exception, as described below.

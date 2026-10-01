@@ -2569,6 +2569,10 @@ void DisplayClass::Sell_Mode_Control(int control)
 /// started?</param>
 void DisplayClass::Waypoint_Mode_Control(int control, bool edit_selected_path)
 {
+	if (Session.IsSharedHouse && control != 0) {
+		return;
+	}
+
 	bool mode = IsWaypointMode;
 	switch (control) {
 		case 0:

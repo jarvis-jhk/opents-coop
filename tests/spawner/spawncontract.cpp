@@ -369,6 +369,11 @@ int main(void)
 		Check(config.CampaignDifficulty == 0 && config.CampaignCDifficulty == 2,
 			"the two difficulties are read apart");
 		Check(config.CampaignID == -1, "a mission outside any campaign says so");
+		Check(!config.Is_Shared_House(), "one campaign player needs no shared house");
+		config.HumanCount = 2;
+		Check(config.Is_Shared_House(), "two campaign players share the scenario house");
+		config.LoadSaveGame = true;
+		Check(!config.Is_Shared_House(), "a resume does not infer shared play from its roster");
 	}
 
 	/*
