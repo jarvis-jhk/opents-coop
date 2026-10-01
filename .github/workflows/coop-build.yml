@@ -1,0 +1,20 @@
+name: Co-op branch checks
+
+on:
+  push:
+    branches:
+      - 'coop/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coop-engine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    uses: ./.github/workflows/engine-build.yml
+    with:
+      artifact-prefix: opents-coop
