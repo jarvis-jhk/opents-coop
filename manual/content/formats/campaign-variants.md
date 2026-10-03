@@ -56,3 +56,11 @@ A win action naming any declared force wins the campaign mission; a loss action 
 Keep `NextScenario=` and `AltNextScenario=` pointing to original mission filenames. The next mission presents its version chooser again, so a player can change versions at each step. A restart also offers the chooser. A mission copy carried in a save remains selectable even if its loose file has been removed; restarting that version uses the carried copy. Single-player saves restore the human houses as forces without asking for a matrix; the single player controls them all. Shared campaigns retain their [save, waypoint, dropship, and roster limits](/formats/spawn-ini/#a-shared-house-campaign).
 
 Use the same fork build and target platform for all peers. Earlier shared-house snapshots do not understand the setup packet and force-switch event; finish or abandon an existing session before updating every machine together.
+
+## Start from a later mission
+
+The campaign dialog's **Mission** list starts the chosen campaign at any mission its map selection data reaches from the first mission. The list shows each mission's step number in the campaign and the `[Basic] Name=` of its map file, or its filename when the map has no name. The first mission is preselected. A mission that more than one step plays is listed once, at its earliest step. A campaign without map selection data lists only its first mission.
+
+A later mission starts with its own starting credits and mission timer, and with no global flags from earlier missions. Edit the starting state in the mission file if a test depends on what earlier missions carry over. The mission's step number sets its default house tech level and the music available, as in a campaign played from the start. Its version chooser appears as usual, and winning it continues the campaign from that mission's map selection stage.
+
+A shared campaign starts the mission its [launch file](/formats/spawn-ini/) names in `Scenario=`.

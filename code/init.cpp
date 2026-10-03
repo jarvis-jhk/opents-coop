@@ -211,6 +211,7 @@
 #include <dos.h>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 extern VoxelDataStruct DropPodVoxel;
@@ -274,6 +275,9 @@ struct CheatEntryStruct {
 	char const * VersionSuffix;	/// Suffix appended to version string
 	bool IsAllowedInMP;
 };
+
+// Holds the mission picked in the campaign dialog until the campaign starts.
+static UICampaignMission StartMission;
 
 static CheatEntryStruct CheatEntries[] = {
 	{ &VisceroidsAsSnoBees,    "PENGO",    " PG", false },
@@ -704,9 +708,12 @@ bool Campaign_Available(CampaignClass * campaign)
 /// This routine reads the campaign list first if that has not already happened, and then
 /// runs the campaign dialog until the player either commits or backs out.
 /// </summary>
-/// <returns>Returns with the campaign chosen, or CAMPAIGN_NONE if the player backed out.</returns>
+/// <returns>Returns with the campaign chosen, or CAMPAIGN_NONE if the player backed out. The
+/// mission to start it with is left in StartMission.</returns>
 static CampaignType Choose_Campaign(void)
 {
+	StartMission = UICampaignMission();
+
 	if (Campaigns.Count() == 0) {
 		Init_Campaigns();
 
@@ -716,7 +723,13 @@ static CampaignType Choose_Campaign(void)
 	}
 
 	std::optional<UICampaignEntry> picked = UI_Campaign_Dialog();
-	return(picked.has_value() ? (CampaignType)picked->Campaign : CAMPAIGN_NONE);
+	if (!picked.has_value()) {
+		return(CAMPAIGN_NONE);
+	}
+	if (picked->Mission >= 0 && picked->Mission < (int)picked->Missions.size()) {
+		StartMission = picked->Missions[picked->Mission];
+	}
+	return((CampaignType)picked->Campaign);
 }
 
 
@@ -1251,12 +1264,24 @@ restart:
 				}
 			}
 		} else {
-			if (!Start_Scenario(Campaigns[Scen->Campaign]->ScenarioName, true, Scen->Campaign)) {
+			UICampaignMission const start = std::exchange(StartMission, UICampaignMission());
+			bool const later = !start.File.empty() && start.Stage >= 0;
+			if (later) {
+				Scen->Scenario = start.Number;
+			}
+			if (!Start_Scenario(later ? start.File.c_str() : Campaigns[Scen->Campaign]->ScenarioName, true, Scen->Campaign)) {
+				Scen->Scenario = 1;
 				if (Debug_Map) {
 					return(false);
 				} else {
 					goto restart;
 				}
+			}
+			// A restart restores the stage from the environment, so both start at the chosen mission.
+			if (later) {
+				Scen->Stage = static_cast<unsigned short>(start.Stage);
+				Environment.Stage = static_cast<unsigned short>(start.Stage);
+				DebugString("Campaign starts at mission %d, map selection stage %d\n", start.Number, start.Stage);
 			}
 		}
 

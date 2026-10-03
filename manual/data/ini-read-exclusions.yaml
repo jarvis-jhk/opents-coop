@@ -147,3 +147,8 @@ site_exclusions:
     keys: [Name]
     classification: excluded
     reason: This read displays the existing Basic.Name in the chooser; ScenarioClass.Read_INI owns the mission description.
+  - path: code/ui/screens/campaign/uicampaigndlg.cpp
+    function: Campaign_Missions
+    keys: [Name]
+    classification: excluded
+    reason: This read labels the campaign dialog's mission list with the existing Basic.Name; ScenarioClass.Read_INI owns the mission description.

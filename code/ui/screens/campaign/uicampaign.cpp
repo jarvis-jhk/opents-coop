@@ -21,6 +21,22 @@ UICampaignPresenterClass::UICampaignPresenterClass(UICampaignState state) :
 	State(std::move(state))
 {
 	Name_Difficulty();
+	List_Missions();
+}
+
+
+/// <summary>
+/// Shows the missions of the highlighted campaign, starting from its first.
+/// </summary>
+void UICampaignPresenterClass::List_Missions(void)
+{
+	State.MissionLabels.clear();
+	State.Mission = 0;
+	if (State.Selected >= 0 && State.Selected < (int)State.Entries.size()) {
+		for (UICampaignMission const & mission : State.Entries[State.Selected].Missions) {
+			State.MissionLabels.push_back(mission.Label);
+		}
+	}
 }
 
 
@@ -37,8 +53,13 @@ void UICampaignPresenterClass::Name_Difficulty(void)
 void UICampaignPresenterClass::Execute(UIIntent const & intent)
 {
 	if (intent.Name == "select") {
-		if (intent.Value >= 0 && intent.Value < (int)State.Entries.size()) {
+		if (intent.Value >= 0 && intent.Value < (int)State.Entries.size() && intent.Value != State.Selected) {
 			State.Selected = intent.Value;
+			List_Missions();
+		}
+	} else if (intent.Name == "mission") {
+		if (intent.Value >= 0 && intent.Value < (int)State.MissionLabels.size()) {
+			State.Mission = intent.Value;
 		}
 	} else if (intent.Name == "difficulty") {
 		State.Difficulty = intent.Value;
@@ -46,6 +67,7 @@ void UICampaignPresenterClass::Execute(UIIntent const & intent)
 	} else if (intent.Name == "ok") {
 		if (State.Selected >= 0 && State.Selected < (int)State.Entries.size()) {
 			Picked = State.Entries[State.Selected];
+			Picked->Mission = State.Mission;
 		}
 		Result = UI_RESULT_ACCEPTED;
 	} else if (intent.Name == "cancel") {
@@ -85,6 +107,8 @@ class UICampaignViewClass : public UIRmlViewClass
 		virtual void Sync(void) override
 		{
 			Model.DirtyVariable("selected");
+			Model.DirtyVariable("missions");
+			Model.DirtyVariable("mission");
 			Model.DirtyVariable("difficulty");
 			Model.DirtyVariable("difficultyname");
 		}
@@ -101,8 +125,11 @@ class UICampaignViewClass : public UIRmlViewClass
 
 			UICampaignState & state = Data.State;
 			return(model.RegisterArray<std::vector<UICampaignEntry>>()
+				&& model.RegisterArray<std::vector<std::string>>()
 				&& model.Bind("entries", &state.Entries)
 				&& model.Bind("selected", &state.Selected)
+				&& model.Bind("missions", &state.MissionLabels)
+				&& model.Bind("mission", &state.Mission)
 				&& model.Bind("difficulty", &state.Difficulty)
 				&& model.Bind("difficultyname", &state.DifficultyName));
 		}

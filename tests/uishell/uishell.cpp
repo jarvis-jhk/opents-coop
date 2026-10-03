@@ -17,6 +17,7 @@
 #include "ui/rml/rmlsurface.h"
 #include "ui/rml/rmlsystem.h"
 #include "ui/rml/rmlview.h"
+#include "ui/screens/campaign/uicampaign.h"
 #include "ui/screens/forces/uiforces.h"
 #include "ui/screens/display/uidisplay.h"
 #include "ui/screens/gamectrl/uigamectrl.h"
@@ -3131,6 +3132,90 @@ class RecordingScenarioServiceClass : public UIScenarioServiceClass
 };
 
 
+std::vector<std::string> Mission_Options(Rml::ElementDocument * document)
+{
+	std::vector<std::string> labels;
+	Rml::ElementFormControlSelect * missions = document != nullptr ? rmlui_dynamic_cast<Rml::ElementFormControlSelect *>(document->GetElementById("mission")) : nullptr;
+	if (missions != nullptr) {
+		for (int index = 0; index < missions->GetNumOptions(); index++) {
+			Rml::Element * option = missions->GetOption(index);
+			if (!option->HasAttribute("data-for")) {
+				labels.push_back(option->GetInnerRML());
+			}
+		}
+	}
+	return(labels);
+}
+
+
+void Test_Campaign_Screen(Rml::Context & context, CountingSystemInterfaceClass & system)
+{
+	int const problems = system.Problems;
+	UICampaignState state;
+	UICampaignEntry gdi;
+	gdi.Description = "GDI";
+	gdi.Campaign = 0;
+	gdi.Missions = {{"1: GDI1A.MAP", "GDI1A.MAP", -1, 1}, {"2: GDI2A.MAP", "GDI2A.MAP", 1, 2}};
+	UICampaignEntry nod;
+	nod.Description = "Nod";
+	nod.Campaign = 1;
+	nod.Missions = {{"1: NOD1A.MAP", "NOD1A.MAP", -1, 1}, {"2: NOD2A.MAP", "NOD2A.MAP", 1, 2}, {"3: NOD3A.MAP", "NOD3A.MAP", 3, 3}};
+	state.Entries = {gdi, nod};
+	state.DifficultyNames = {"Easy", "Normal", "Hard"};
+	UICampaignPresenterClass presenter(std::move(state));
+	std::unique_ptr<UIViewClass> view = UI_Campaign_View(presenter);
+	Check(Rml(*view).Prepare(context), "the campaign dialog prepares with its real data model");
+	view->Show(false);
+	view->Sync();
+	context.Update();
+	context.Render();
+	Check(system.Problems == problems, "the campaign dialog with its mission row renders without RmlUi warnings");
+	Rml::ElementDocument * document = Rml(*view).Document();
+	Check(Mission_Options(document) == std::vector<std::string>{"1: GDI1A.MAP", "2: GDI2A.MAP"},
+		"the mission list offers the highlighted campaign's missions");
+	Check(presenter.State.Mission == 0, "the campaign's first mission is preselected");
+
+	std::vector<Rml::Element *> rows = Visible_Rows(document, "campaigns");
+	Check(rows.size() == 2, "both campaigns are listed");
+	if (rows.size() == 2) {
+		Click(context, rows[1]);
+		presenter.Drain();
+		view->Sync();
+		context.Update();
+	}
+	Check(presenter.State.Selected == 1 && Mission_Options(document).size() == 3,
+		"a physical click on another campaign lists that campaign's missions");
+
+	Rml::ElementFormControlSelect * missions = rmlui_dynamic_cast<Rml::ElementFormControlSelect *>(document->GetElementById("mission"));
+	if (missions != nullptr) {
+		missions->SetSelection(2);
+		presenter.Drain();
+		view->Sync();
+		context.Update();
+	}
+	Check(presenter.State.Mission == 2, "choosing a mission in the dropdown selects it");
+	Drive(presenter, "mission", 7);
+	Check(presenter.State.Mission == 2, "a mission the campaign does not have is ignored");
+	Drive(presenter, "select", 1);
+	Check(presenter.State.Mission == 2, "clicking the highlighted campaign again keeps the chosen mission");
+	Drive(presenter, "select", 0);
+	Check(presenter.State.Mission == 0 && presenter.State.MissionLabels.size() == 2,
+		"switching campaign returns to its first mission");
+	view->Sync();
+	context.Update();
+	Check(Mission_Options(document).size() == 2, "and the view then shows the other campaign's missions");
+	Drive(presenter, "select", 1);
+	Drive(presenter, "mission", 2);
+	Drive(presenter, "ok");
+	Check(presenter.Picked.has_value() && presenter.Picked->Campaign == 1 && presenter.Picked->Mission == 2
+		&& presenter.Picked->Missions[2].Stage == 3 && presenter.Picked->Missions[2].Number == 3,
+		"OK returns the campaign with the chosen mission, its stage and its number");
+	Check(system.Problems == problems, "changing campaign and mission leaves the document free of warnings");
+	view->Release();
+	context.Update();
+}
+
+
 void Test_Forces_Screen(Rml::Context & context, CountingSystemInterfaceClass & system)
 {
 	int const problems = system.Problems;
@@ -4524,6 +4609,7 @@ void Test_Documents(void)
 		Test_Surface_Element(*context, render, system);
 		Test_Skirmish_Screen(*context, system);
 		Test_Scenario_Screen(*context, system);
+		Test_Campaign_Screen(*context, system);
 		Test_Forces_Screen(*context, system);
 		Test_Net_Browser_Screen(*context, system);
 		Test_Net_Setup_Screen(*context, system);

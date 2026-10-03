@@ -19,10 +19,21 @@
 class UIViewClass;
 
 
+struct UICampaignMission
+{
+	std::string Label;
+	std::string File;
+	int Stage = -1;
+	int Number = 1;
+};
+
+
 struct UICampaignEntry
 {
 	std::string Description;
 	int Campaign = 0;
+	std::vector<UICampaignMission> Missions;
+	int Mission = 0;
 };
 
 
@@ -31,6 +42,8 @@ struct UICampaignState
 	std::vector<UICampaignEntry> Entries;
 	std::vector<std::string> DifficultyNames;
 	int Selected = 0;
+	std::vector<std::string> MissionLabels;
+	int Mission = 0;
 	int Difficulty = 0;
 	std::string DifficultyName;
 	int Top = -1;
@@ -49,6 +62,7 @@ class UICampaignPresenterClass : public UIPresenterClass
 
 	private:
 		void Name_Difficulty(void);
+		void List_Missions(void);
 };
 
 

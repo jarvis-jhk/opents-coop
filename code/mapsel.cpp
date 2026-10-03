@@ -174,6 +174,79 @@ int Map_Select_Stage_Of(ScenarioClass const * scenario, char const * map_name)
 
 
 /// <summary>
+/// Lists every mission a house's campaign can reach from the stage that plays its first map,
+/// with the stage to resume map selection from and the mission number the campaign gives it.
+/// Missions are ordered by mission number, then by their order in the map selection file. A
+/// map that several stages play is listed once, at its lowest number. Returns an empty list
+/// when the map selection file or the first map's stage is missing.
+/// </summary>
+std::vector<MapSelectMission> Map_Select_Missions(char const * house_name, char const * first_map)
+{
+	std::vector<MapSelectMission> missions;
+	if (house_name == NULL || first_map == NULL) {
+		return(missions);
+	}
+
+	MapChoice choices;
+	if (!choices.Initialize(house_name)) {
+		choices.Deinit();
+		return(missions);
+	}
+
+	std::vector<int> queue;
+	std::vector<int> numbers;
+	for (int id = 0; id <= 32767 && choices.Find_Stage_By_ID(static_cast<unsigned short>(id)) != nullptr; id++) {
+		char const * name = choices.Find_Stage_By_ID(static_cast<unsigned short>(id))->Get_Scenario_Name();
+		numbers.push_back(0);
+		if (queue.empty() && name != NULL && stricmp(name, first_map) == 0) {
+			queue.push_back(id);
+			numbers.back() = 1;
+		}
+	}
+
+	for (std::size_t next = 0; next < queue.size(); next++) {
+		MapStage * stage = choices.Find_Stage_By_ID(static_cast<unsigned short>(queue[next]));
+		for (int index = 0; index < stage->Get_Selection_Count(); index++) {
+			MapSelection * selection = stage->Get_Selection(index);
+			MapStage * target = selection != NULL ? choices.Find_Stage_By_Name(selection->Get_Stage_Label()) : NULL;
+			int const id = target != NULL ? choices.Get_Stage_ID(target) : -1;
+			if (id >= 0 && id < (int)numbers.size() && numbers[id] == 0) {
+				numbers[id] = numbers[queue[next]] + 1;
+				queue.push_back(id);
+			}
+		}
+	}
+
+	for (int number = 1; !queue.empty(); number++) {
+		bool found = false;
+		for (int id = 0; id < (int)numbers.size(); id++) {
+			if (numbers[id] != number) {
+				continue;
+			}
+			found = true;
+			char const * name = choices.Find_Stage_By_ID(static_cast<unsigned short>(id))->Get_Scenario_Name();
+			if (name == NULL || name[0] == '\0') {
+				continue;
+			}
+			bool listed = false;
+			for (MapSelectMission const & mission : missions) {
+				listed = listed || stricmp(mission.Scenario.c_str(), name) == 0;
+			}
+			if (!listed) {
+				missions.push_back(MapSelectMission{name, id, number});
+			}
+		}
+		if (!found) {
+			break;
+		}
+	}
+
+	choices.Deinit();
+	return(missions);
+}
+
+
+/// <summary>
 /// Advances the campaign to a map without showing the selection screen.
 /// This routine is used when the destination is already decided and only the bookkeeping
 /// is wanted. The map must be one of the choices offered by the scenario's current stage.

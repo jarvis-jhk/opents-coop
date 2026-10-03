@@ -11,9 +11,9 @@
 #reveal
 {
 	width: 370dp;
-	height: 243dp;
+	height: 275dp;
 	top: 50%;
-	margin-top: -121dp;
+	margin-top: -137dp;
 }
 
 #content
@@ -33,6 +33,31 @@
 {
 	margin-top: 9dp;
 	height: 84dp;
+}
+
+#row-mission
+{
+	display: flex;
+	margin-top: 7dp;
+	height: 25dp;
+}
+
+#row-mission > .caption
+{
+	width: 60dp;
+	line-height: 25dp;
+}
+
+#mission
+{
+	width: 250dp;
+	height: 25dp;
+}
+
+#mission option
+{
+	white-space: nowrap;
+	overflow: hidden;
 }
 
 #row-difficulty

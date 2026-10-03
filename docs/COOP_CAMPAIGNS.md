@@ -16,7 +16,7 @@ Do not commit or distribute original game assets or copied mission files with th
 
 ## Test alone
 
-Install the fork engine beside your legally obtained game data and start a campaign from the menu. The version chooser lists the original and the loose variants. Choose the co-op version; the single-player row checks every force by default. Select an object from each force and verify its credits and queue. Press F9 to cycle forces if that key is free, or bind `NextForce` in the keyboard settings.
+Install the fork engine beside your legally obtained game data and start a campaign from the menu. To test a later mission, choose it in the campaign dialog's **Mission** list; it starts without the credits and global flags earlier missions carry over. The version chooser lists the original and the loose variants. Choose the co-op version; the single-player row checks every force by default. Select an object from each force and verify its credits and queue. Press F9 to cycle forces if that key is free, or bind `NextForce` in the keyboard settings.
 
 Verify that each house can build and place structures, that its units obey orders, that allies do not fight, and that the mission's win and loss triggers do what you intended. Test the next-mission transition and restart as well. A successful engine build does not establish these runtime results.
 
