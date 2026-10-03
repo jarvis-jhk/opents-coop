@@ -4,8 +4,8 @@ This fork lets several players share a campaign house or control separate missio
 
 ## Create a version
 
-1. Copy a legally obtained mission into your local game-data folder, preserving its relative directory. Keep the original mission available.
-2. Name the copy with a tag before its extension, such as `Maps/Missions/GDI1A.coop2.MAP`.
+1. Copy a legally obtained mission. Keep the original mission available.
+2. Name the copy with a tag before its extension, such as `GDI1A.coop2.MAP`, and put it in the directory of the filename the campaign starts. The stock campaigns start `GDI1A.MAP` without a directory, so their variants go in the game folder or the user directory; a variant in `Maps/Missions/` is listed only for a mission started as `Maps/Missions/GDI1A.MAP`. The debug log line `Mission <file> has <n> version(s)` shows the filename the chooser searched for.
 3. Set `[Basic] VariantName=Two bases` and keep `[Basic] Player=GDI` as the main force.
 4. Add a second house to `[Houses]`, configure that house's credits and allies, and place its infantry, vehicles, and structures in your map editor. Give those objects the second house as owner.
 5. Add `[PlayerForces]` with `1=GDI2`, using the second house's exact identifier. Include only houses people should control.
