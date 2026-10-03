@@ -1,0 +1,105 @@
+/*******************************************************************************
+ *                                O P E N  T S
+ *******************************************************************************
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright 2026 OpenTS contributors
+ *
+ * See LICENSE.md for applicable additional terms and warranty disclaimers.
+ ******************************************************************************/
+
+
+#reveal
+{
+	width: 560dp;
+	height: 391dp;
+	top: 50%;
+	margin-top: -195dp;
+}
+
+#content
+{
+	padding: 14dp 33dp 0 33dp;
+}
+
+#title
+{
+	height: 17dp;
+	line-height: 17dp;
+	text-align: center;
+}
+
+#cap-versions, #cap-control
+{
+	display: block;
+	margin-top: 8dp;
+	height: 17dp;
+	line-height: 17dp;
+}
+
+#versions
+{
+	height: 84dp;
+}
+
+#control
+{
+	height: 150dp;
+	overflow: auto;
+}
+
+.matrix-row
+{
+	display: block;
+	height: 21dp;
+	white-space: nowrap;
+	width: 894dp;
+}
+
+.matrix-row .cell-name, .matrix-row .cell-force
+{
+	display: inline-block;
+	vertical-align: top;
+	overflow: hidden;
+	white-space: nowrap;
+	line-height: 19dp;
+}
+
+.matrix-row .cell-name
+{
+	width: 110dp;
+}
+
+.matrix-row .cell-force
+{
+	width: 98dp;
+	text-align: center;
+}
+
+.matrix-row.header .cell-force
+{
+	font-size: 11dp;
+}
+
+#invalid
+{
+	margin-top: 4dp;
+	height: 17dp;
+	color: #ff6040;
+}
+
+#buttons
+{
+	display: flex;
+	margin-top: 8dp;
+}
+
+button
+{
+	width: 76dp;
+}
+
+#ok
+{
+	margin-left: 316dp;
+	margin-right: 10dp;
+}

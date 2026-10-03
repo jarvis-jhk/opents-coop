@@ -64,6 +64,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "conquer.h"
 
 #include "_keyboar.h"
@@ -198,7 +200,7 @@ void Ingame_Menu_Dialog(void)
 {
 	if (SpecialDialog != SDLG_NONE) {
 		if (Session.Type != GAME_NORMAL || Session.Is_Networked()) {
-			if (PlayerPtr->IsToLose || PlayerPtr->IsToWin || PlayerPtr->IsToDie) {
+			if (Campaign_Player()->IsToLose || Campaign_Player()->IsToWin || Campaign_Player()->IsToDie) {
 				SpecialDialog = SDLG_NONE;
 				return;
 			}
@@ -301,7 +303,7 @@ void Ingame_Menu_Dialog(void)
 					break;
 
 				case SDLG_SURRENDER:
-					if (!PlayerPtr->IsDefeated && !PlayerPtr->IsToWin && !PlayerPtr->IsToLose && !PlayerPtr->IsToDie && Surrender_Dialog(TXT_SURRENDER)) {
+					if (!PlayerPtr->IsDefeated && !Campaign_Player()->IsToWin && !Campaign_Player()->IsToLose && !Campaign_Player()->IsToDie && Surrender_Dialog(TXT_SURRENDER)) {
 						if ((Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) && !Session.Is_Networked()) {
 							PlayerPtr->Flag_To_Lose();
 						} else {
@@ -710,6 +712,7 @@ void IPX_Call_Back(void)
 							break;
 
 						case NET_SHARED_MISSION:
+						case NET_SHARED_SETUP:
 							Shared_Campaign_Receive(Session.GPacket);
 							break;
 

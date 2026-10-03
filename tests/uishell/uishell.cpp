@@ -17,6 +17,7 @@
 #include "ui/rml/rmlsurface.h"
 #include "ui/rml/rmlsystem.h"
 #include "ui/rml/rmlview.h"
+#include "ui/screens/forces/uiforces.h"
 #include "ui/screens/display/uidisplay.h"
 #include "ui/screens/gamectrl/uigamectrl.h"
 #include "ui/screens/gameopt/uigameopt.h"
@@ -3130,6 +3131,61 @@ class RecordingScenarioServiceClass : public UIScenarioServiceClass
 };
 
 
+void Test_Forces_Screen(Rml::Context & context, CountingSystemInterfaceClass & system)
+{
+	int const problems = system.Problems;
+	UIForcesState state;
+	state.Mission = "Campaign mission";
+	state.Players = {"Alice", "Bob"};
+	state.Variants = {{"Original", {"GDI"}}, {"Co-op", {"GDI", "GDI2"}}};
+	state.Selected = 1;
+	UIForcesPresenterClass presenter(std::move(state));
+	std::unique_ptr<UIViewClass> view = UI_Forces_View(presenter);
+	Check(Rml(*view).Prepare(context), "the force chooser prepares with its real data model");
+	view->Show(false);
+	view->Sync();
+	context.Update();
+	context.Render();
+	Check(system.Problems == problems, "the force chooser renders without RmlUi warnings");
+	Check(presenter.State.Valid && presenter.State.Control[0] == 1 && presenter.State.Control[1] == 2,
+		"two players start with one force each");
+	Rml::ElementDocument * document = Rml(*view).Document();
+	Rml::ElementList cells;
+	document->GetElementsByTagName(cells, "input");
+	Check(cells.size() == 4, "the two by two control matrix has four checkboxes");
+	if (cells.size() == 4) {
+		Click(context, cells[0]);
+		presenter.Drain();
+		view->Sync();
+		context.Update();
+		Check(!presenter.State.Valid && presenter.State.Control[0] == 0,
+			"a physical click removes Alice from force one and makes the matrix invalid");
+		Drive(presenter, "ok");
+		Check(!presenter.Result.has_value(), "OK refuses a force with no controller");
+		cells.clear();
+		document->GetElementsByTagName(cells, "input");
+		if (cells.size() == 4) {
+			Click(context, cells[0]);
+			presenter.Drain();
+			view->Sync();
+			context.Update();
+			Check(presenter.State.Valid, "a second physical click restores the assignment");
+		}
+	}
+	Drive(presenter, "cell", 1);
+	Check(presenter.State.Control[1] == 3 && presenter.State.Valid,
+		"Alice may control both forces while Bob shares the second");
+	Drive(presenter, "variant", 0);
+	view->Sync();
+	context.Update();
+	Check(presenter.State.Control[0] == 3 && presenter.State.Control[1] == 0 && presenter.State.Valid,
+		"choosing the original version presets both players to its only force");
+	Check(system.Problems == problems, "matrix changes leave the real document free of warnings");
+	view->Release();
+	context.Update();
+}
+
+
 void Test_Scenario_Screen(Rml::Context & context, CountingSystemInterfaceClass & system)
 {
 	int problems = system.Problems;
@@ -4468,6 +4524,7 @@ void Test_Documents(void)
 		Test_Surface_Element(*context, render, system);
 		Test_Skirmish_Screen(*context, system);
 		Test_Scenario_Screen(*context, system);
+		Test_Forces_Screen(*context, system);
 		Test_Net_Browser_Screen(*context, system);
 		Test_Net_Setup_Screen(*context, system);
 		Test_Version_Screen(*context, system);

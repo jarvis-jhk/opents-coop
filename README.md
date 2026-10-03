@@ -37,6 +37,12 @@ OpenTS is not:
 OpenTS is an independent community project and is not affiliated with or
 endorsed by Electronic Arts.
 
+## Co-op campaign fork
+
+This fork adds selectable campaign mission variants and a player-by-force control matrix. Several players can share a force, and one player can control several forces. See [Create and play co-op campaign variants](docs/COOP_CAMPAIGNS.md) for map editing, single-player testing, and network setup.
+
+Download matching builds for every machine from the [fork releases](https://github.com/jarvis-jhk/opents-coop/releases). Original game data is required. Shared campaigns currently disable saves and waypoint editing and refuse dropship loadout missions.
+
 ## Community
 
 - Discord: <https://opents.net/discord>

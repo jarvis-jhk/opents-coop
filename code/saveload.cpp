@@ -44,6 +44,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "saveload.h"
 
 #include "_deploymentconfig.h"
@@ -1172,6 +1174,7 @@ bool Load_Game(const char *file_name)
 	**	Fixup any expediency data that can be inferred from the physical
 	**	data loaded.
 	*/
+	Restore_Mission_Forces();
 	Post_Load_Game();
 
 	// The next mission of a resumed campaign is played at the pair the save carries.

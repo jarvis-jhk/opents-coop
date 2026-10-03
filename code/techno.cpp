@@ -130,6 +130,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "techno.h"
 
 #include "_bench.h"
@@ -396,7 +398,7 @@ bool TechnoClass::Is_Players_Army(void) const
 	**	If not discoverd by the player, then don't consider it part of the
 	**	player's army (yet).
 	*/
-	if (!DiscoveredBy[PlayerPtr]) {
+	if (!DiscoveredBy[Campaign_Player()]) {
 		return(false);
 	}
 
@@ -777,16 +779,12 @@ void TechnoClass::Debug_Dump(MonoClass * mono) const
 
 /// <summary>
 /// Initializes owner-related state for the object.
-/// Sets IsOwnedByPlayer based on whether the object's house is the player's house.
+/// Sets IsOwnedByPlayer based on whether the object's house is a player's house.
 /// </summary>
 void TechnoClass::Init(void)
 {
 	if (House != NULL) {
-		if (PlayerPtr == House) {
-			IsOwnedByPlayer = true;
-		} else {
-			IsOwnedByPlayer = false;
-		}
+		IsOwnedByPlayer = Is_Players_House(House);
 	}
 }
 
@@ -2145,7 +2143,7 @@ bool TechnoClass::Evaluate_Object(ThreatType method, int mask, int range, Techno
 	**	If the object is not visible, then bail. Human controlled units
 	**	are always considered to be visible.
 	*/
-	if (House->Is_Player_Control() && !object->IsOwnedByPlayer && !object->DiscoveredBy[PlayerPtr] && Session.Type == GAME_NORMAL && object->RTTI != RTTI_AIRCRAFT) {
+	if (House->Is_Player_Control() && !object->IsOwnedByPlayer && !object->DiscoveredBy[Campaign_Player()] && Session.Type == GAME_NORMAL && object->RTTI != RTTI_AIRCRAFT) {
 		BEnd(BENCH_EVAL_OBJECT);
 		return(false);
 	}
@@ -3464,16 +3462,19 @@ bool TechnoClass::Is_Ready_To_Cloak(void) const
  *=============================================================================================*/
 bool TechnoClass::Select(void)
 {
-	if (!DiscoveredBy[PlayerPtr] && !House->Is_Player_Control() && MainWindow) {
+	if (!DiscoveredBy[Campaign_Player()] && !House->Is_Player_Control() && MainWindow) {
 		return(false);
 	}
 
 	if (BASECLASS::Select()) {
+		if (Is_Local_Force(House)) {
+			Show_Force(House);
+		}
 
 		/*
 		**	Speak a confirmation of selection.
 		*/
-		if (House->Is_Player_Control() && AllowVoice) {
+		if (Is_Local_Force(House) && AllowVoice) {
 			if (Tag != NULL) {
 				// The other machines learn of the selection through the event, at the same frame.
 				if (Session.Is_Networked()) {
@@ -4313,7 +4314,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		**	object cannot do anything special with itself, then just return with
 		**	the no action flag.
 		*/
-		if (object == this && CurrentObject.Count() == 1 && House->Is_Player_Control()) {
+		if (object == this && CurrentObject.Count() == 1 && Is_Local_Force(House)) {
 			return(ACTION_SELF);
 		}
 
@@ -4336,7 +4337,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		**	Special guard area mission is possible if both the control and the
 		**	alt keys are held down.
 		*/
-		if (House->Is_Player_Control() && ctrldown && altdown && Can_Player_Move()) {
+		if (Is_Local_Force(House) && ctrldown && altdown && Can_Player_Move()) {
 			return(ACTION_GUARD_AREA);
 		}
 
@@ -4344,7 +4345,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		**	Special override to force a move regardless of what is occupying the location.
 		*/
 		if (altdown) {
-			if (House->Is_Player_Control() && Can_Player_Move()) {
+			if (Is_Local_Force(House) && Can_Player_Move()) {
 				return(ACTION_MOVE);
 			}
 		}
@@ -4354,7 +4355,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		**	is held down.
 		*/
 		if (shiftdown) {
-			if (House->Is_Player_Control() && !IsALoaner) {
+			if (Is_Local_Force(House) && !IsALoaner) {
 				return(ACTION_TOGGLE_SELECT);
 			}
 		}
@@ -4363,7 +4364,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		**	If firing is possible and legal, then return this action potential.
 		*/
 		TechnoTypeClass const * ttype = TClass;
-		if (object->Not_Underground() && House->Is_Player_Control() && (ctrldown || !House->Is_Ally(object)) && (ctrldown || object->Class_Of()->IsLegalTarget || (Rule->IsTreeTarget && object->RTTI == RTTI_TERRAIN))) {
+		if (object->Not_Underground() && Is_Local_Force(House) && (ctrldown || !House->Is_Ally(object)) && (ctrldown || object->Class_Of()->IsLegalTarget || (Rule->IsTreeTarget && object->RTTI == RTTI_TERRAIN))) {
 
 			if (Is_Weapon_Equipped() ||
 					(RTTI == RTTI_INFANTRY &&
@@ -4389,7 +4390,7 @@ ActionType TechnoClass::What_Action(ObjectClass const * object, bool disallow_fo
 		/*
 		**	Possibly try to select the specified object, if that is warranted.
 		*/
-		if (!Is_Weapon_Equipped() || !House->Is_Player_Control() || object->Owner() == Owner()) {
+		if (!Is_Weapon_Equipped() || !Is_Local_Force(House) || object->Owner() == Owner()) {
 			if ((!IsALoaner || !IsOwnedByPlayer) && object->Class_Of()->IsSelectable && !object->IsSelected) {
 				return(ACTION_SELECT);
 			}
@@ -4464,7 +4465,7 @@ ActionType TechnoClass::What_Action(Cell const & cell, bool check_fog, bool disa
 	 * waypoint patrol.
 	 */
 	bool renovator = Is_Renovator();
-	if (House->Is_Player_Control() && ((ctrldown && altdown) || IsOnWaypointPatrol) && Can_Player_Move() && (Can_Player_Fire() || renovator)) {
+	if (Is_Local_Force(House) && ((ctrldown && altdown) || IsOnWaypointPatrol) && Can_Player_Move() && (Can_Player_Fire() || renovator)) {
 		if (PlayerPtr->Waypoint_At(cell) != NULL || IsOnWaypointPatrol) {
 			return(ACTION_PATROL_WAYPOINT);
 		}
@@ -4474,7 +4475,7 @@ ActionType TechnoClass::What_Action(Cell const & cell, bool check_fog, bool disa
 	/*
 	**	If firing is possible and legal, then return this action potential.
 	*/
-	if (House->Is_Player_Control() && Get_Class_Weapon_Data(0)->Weapon != NULL) {
+	if (Is_Local_Force(House) && Get_Class_Weapon_Data(0)->Weapon != NULL) {
 
 		bool destroyable = Map[cell].Is_Tile_Destroyable_Cliff();
 		if (destroyable) {
@@ -4506,7 +4507,7 @@ ActionType TechnoClass::What_Action(Cell const & cell, bool check_fog, bool disa
 	**	If the object can enter the cell specified, then allow
 	**	movement to it.
 	*/
-	if (House->Is_Player_Control() && (Can_Player_Move() || Is_Move_Override())) {
+	if (Is_Local_Force(House) && (Can_Player_Move() || Is_Move_Override())) {
 
 		if (!Map.In_Local_Radar(cell, true)) {
 			return(ACTION_NOMOVE);
@@ -4563,7 +4564,7 @@ ActionType TechnoClass::What_Action(Cell const & cell, bool check_fog, bool disa
  *=============================================================================================*/
 bool TechnoClass::Can_Player_Move(void) const
 {
-	if (House->Is_Player_Control() && !Is_Immobilized()) {
+	if (Is_Local_Force(House) && !Is_Immobilized()) {
 		return(true);
 	}
 	return(false);
@@ -4668,7 +4669,7 @@ bool TechnoClass::Can_Deploy_Now(void) const
  *=============================================================================================*/
 bool TechnoClass::Can_Player_Fire(void) const
 {
-	if (House->Is_Player_Control() && PrimaryWeapon != NULL && !Is_Immobilized()) {
+	if (Is_Local_Force(House) && PrimaryWeapon != NULL && !Is_Immobilized()) {
 		return(true);
 	}
 	return(false);
@@ -4925,7 +4926,7 @@ bool TechnoClass::Captured(HouseClass * newowner)
 		**	Change ownership now.
 		*/
 		House = newowner;
-		IsOwnedByPlayer = (House == PlayerPtr);
+		IsOwnedByPlayer = Is_Players_House(House);
 
 		newowner->Tracking_Active_Add(this, true);
 
@@ -4954,7 +4955,7 @@ bool TechnoClass::Captured(HouseClass * newowner)
 void TechnoClass::Set_Owner(HouseClass * newowner)
 {
 	House = newowner;
-	IsOwnedByPlayer = newowner == PlayerPtr;
+	IsOwnedByPlayer = Is_Players_House(newowner);
 }
 
 
@@ -8816,7 +8817,7 @@ bool TechnoClass::Is_Radar_Visible(DetectedType & detected) const
 		}
 
 		if (House->Is_Player_Control()) {
-			return(DiscoveredBy[PlayerPtr]);
+			return(DiscoveredBy[Campaign_Player()]);
 		}
 
 		int height = HeightAGL;
@@ -9065,8 +9066,8 @@ void TechnoClass::Update_Radar_Position(bool force_update)
 		return;
 	}
 
-	if (!DiscoveredBy[PlayerPtr] && Session.Type == GAME_NORMAL && !Map.Is_Shrouded(Center_Coord())) {
-		DiscoveredBy.Set(PlayerPtr);
+	if (!DiscoveredBy[Campaign_Player()] && Session.Type == GAME_NORMAL && !Map.Is_Shrouded(Center_Coord())) {
+		DiscoveredBy.Set(Campaign_Player());
 	}
 
 	Point2D point;

@@ -76,6 +76,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "cell.h"
 
 #include "_alpha.h"
@@ -2531,7 +2533,7 @@ void CellClass::Wipe_Depth(Point2D const & point, Rect const & cliprect)
 /// <param name="cliprect">The clipping rectangle to draw within.</param>
 void CellClass::Draw_Shroud_And_Fog(Point2D const & point, Rect const & cliprect)
 {
-	ShadowFrame = TacticalMap->Cell_Shadow(CellID, false, PlayerPtr);
+	ShadowFrame = TacticalMap->Cell_Shadow(CellID, false, Campaign_Player());
 
 	int shadow_frame = ShadowFrame;
 	if (shadow_frame == -2) {
@@ -2542,7 +2544,7 @@ void CellClass::Draw_Shroud_And_Fog(Point2D const & point, Rect const & cliprect
 
 	Draw_Shroud_Or_Fog_Shape(point, cliprect, shadow_frame);
 
-	FogFrame = TacticalMap->Cell_Shadow(CellID, true, PlayerPtr);
+	FogFrame = TacticalMap->Cell_Shadow(CellID, true, Campaign_Player());
 
 	if (!Scen->Special.IsFogOfWar || Session.ObiWan) {
 		return;
@@ -3823,10 +3825,10 @@ crate_money:
 				if (!force_money) {
 					force_money = Random_Pick((int)data, (int)data + std::max(Rule->CrateMoneyBonus, 0));
 				}
-				if (!object->House->Is_Player_Control() || Session.Type != GAME_NORMAL) {
+				if (!object->House->Is_Player_Control() || Session.Type != GAME_NORMAL || Force_Of(object->House) >= 0) {
 					object->House->Refund_Money(force_money);
 				} else {
-					PlayerPtr->Refund_Money(force_money);
+					Campaign_Player()->Refund_Money(force_money);
 				}
 				break;
 

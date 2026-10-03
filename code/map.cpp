@@ -59,6 +59,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "map.h"
 
 #include "_alpha.h"
@@ -6454,7 +6456,7 @@ void MapClass::Shroud_The_Map(HouseClass * house)
 
 	Map.All_To_Look();
 	house->IsVisionary = false;
-	if (house == PlayerPtr) {
+	if (house == Campaign_Player()) {
 		Map.Complete_Radar_Refresh();
 		Flag_To_Redraw(GS_REDRAW_ALL);
 	}
@@ -6481,7 +6483,7 @@ void MapClass::Reveal_The_Map(HouseClass * house, bool unfog)
 			cellptr = Map.Iterate();
 		}
 
-		if (house == PlayerPtr) {
+		if (house == Campaign_Player()) {
 			Map.Complete_Radar_Refresh();
 			Map.Flag_To_Redraw(GS_REDRAW_TACTICAL);
 		}
@@ -11559,7 +11561,7 @@ bool MapClass::Is_Shrouded(Coord const & coord, HouseClass const * house)
 /// <returns>bool; Is the coordinate still shrouded?</returns>
 bool MapClass::Is_Shrouded(Coord const & coord)
 {
-	return(Is_Shrouded(coord, PlayerPtr));
+	return(Is_Shrouded(coord, Campaign_Player()));
 }
 
 
@@ -11581,7 +11583,7 @@ bool MapClass::Is_Fogged(Coord const & coord)
 			int offset = level_height / 2 + 1;
 			Cell cell = coord.As_Cell();
 			cptr = &Map[Cell(cell.X - offset, cell.Y - offset)];
-			if (cptr->IsFogMapped[PlayerPtr]) {
+			if (cptr->IsFogMapped[Campaign_Player()]) {
 				return(false);
 			}
 			cptr = &cptr->Adjacent_Cell(FACING_SE);
@@ -11590,7 +11592,7 @@ bool MapClass::Is_Fogged(Coord const & coord)
 			Cell cell = coord.As_Cell();
 			cptr = &Map[Cell(cell.X - offset, cell.Y - offset)];
 		}
-		if (!cptr->IsFogMapped[PlayerPtr]) {
+		if (!cptr->IsFogMapped[Campaign_Player()]) {
 			return(true);
 		}
 	}
@@ -11643,7 +11645,7 @@ void MapClass::Reveal_Nearby_Technos(CellClass * cptr, HouseClass * house, bool 
 		CellClass * cellptr = &Map[cell];
 		int cell_height = cellptr->Height;
 		if (cell_height >= i - 2 && cell_height <= i) {
-			if (onradar && house == PlayerPtr) {
+			if (onradar && house == Campaign_Player()) {
 				Map.Radar_Cell(cellptr->CellID);
 			}
 			TechnoClass * t = cellptr->Cell_Techno();
@@ -11666,7 +11668,7 @@ void MapClass::Init_Fog_System(void)
 	Reset_Iterator();
 	CellClass * cellptr = Iterate();
 	while (cellptr != NULL) {
-		if (!cellptr->IsFogMapped[PlayerPtr]) {
+		if (!cellptr->IsFogMapped[Campaign_Player()]) {
 			cellptr->Fog_Cell();
 		}
 		cellptr = Iterate();

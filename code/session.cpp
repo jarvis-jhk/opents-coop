@@ -152,9 +152,14 @@ SessionClass::SessionClass(void)
 {
 	Type = GAME_NORMAL;
 	IsSharedHouse = false;
-	SharedHouseID = -1;
+	ForceSeats = ForceControl::Matrix{};
+	ForceCount = 0;
+	for (int index = 0; index < ForceControl::MAX_FORCES; index++) {
+		ForceHouse[index] = -1;
+	}
 	for (int index = 0; index < MAX_PLAYERS; index++) {
 		SeatHouse[index] = -1;
+		SeatForce[index] = -1;
 	}
 	CommProtocol = DEFAULT_COMM_PROTOCOL;
 
@@ -460,17 +465,56 @@ HouseClass * SessionClass::Seat_House(int id) const
 
 
 /// <summary>
-/// Returns the house an event sent under a network id acts on: the shared house for a seat in
-/// a shared house campaign, otherwise the house with that id. Returns NULL for an id that names
-/// no seat or house.
+/// Returns the house an event sent under a network id acts on when the event names no object:
+/// in a shared campaign the force that seat last showed, otherwise the house with that id.
+/// Returns NULL for an id that names no seat or house.
 /// </summary>
 HouseClass * SessionClass::Acting_House(int id) const
 {
 	HouseClass * seat = Seat_House(id);
 	if (seat != NULL && IsSharedHouse) {
-		return(SharedHouseID >= 0 && SharedHouseID < Houses.Count() ? Houses[SharedHouseID] : NULL);
+		int const force = SeatForce[id];
+		return(force >= 0 && force < Houses.Count() ? Houses[force] : NULL);
 	}
 	return(seat);
+}
+
+
+/// <summary>
+/// May the player at a network seat give orders to this house's objects? In a shared campaign
+/// only to the forces the control matrix gives that seat; otherwise only to its own house.
+/// </summary>
+bool SessionClass::Seat_Controls(int id, HouseClass const * house) const
+{
+	if (house == NULL) {
+		return(false);
+	}
+	if (!IsSharedHouse) {
+		return(Seat_House(id) == house);
+	}
+	if (id < 0 || id >= MAX_PLAYERS) {
+		return(false);
+	}
+	for (int force = 0; force < ForceCount; force++) {
+		if (ForceHouse[force] == house->HeapID) {
+			return(ForceControl::Controls(ForceSeats, id, force));
+		}
+	}
+	return(false);
+}
+
+
+/// <summary>
+/// Makes a house the one a seat's later production and placement orders act on. A house the
+/// seat does not control is ignored.
+/// </summary>
+void SessionClass::Set_Seat_Force(int id, int house)
+{
+	if (id < 0 || id >= MAX_PLAYERS || house < 0 || house >= Houses.Count() || !Seat_Controls(id, Houses[house])) {
+		DebugString("Seat %d may not act for house %d\n", id, house);
+		return;
+	}
+	SeatForce[id] = house;
 }
 
 
@@ -921,7 +965,7 @@ bool SessionClass::Log_To_File(FILE *out)
 	} else if (Session.Type == GAME_INTERNET) {
 		fprintf(out, "Type = INTERNET\n");
 	} else if (Session.IsSharedHouse) {
-		fprintf(out, "Type = SHARED HOUSE CAMPAIGN, house %d\n", Session.SharedHouseID);
+		fprintf(out, "Type = SHARED CAMPAIGN, %d force(s)\n", Session.ForceCount);
 	} else {
 		fprintf(out, "Type = !!Unknown!!\n");
 	}

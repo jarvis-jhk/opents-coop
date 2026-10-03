@@ -35,6 +35,7 @@
 #include "ccfile.h"
 #include "connect.h"
 #include "event.h"
+#include "forcecontrol.h"
 #include "house.h" /// needed for HOUSE_NAME_MAX
 #include "ipxaddr.h"
 #include "msglist.h"
@@ -169,6 +170,7 @@ enum NetCommandType {
 	NET_DESYNC_CONTINUE,		// The master's decision to play on without the players out of sync.
 	NET_LOAD_GAME,				// The master names the multiplayer save every machine loads.
 	NET_SHARED_MISSION,			// The master names the mission a shared house campaign plays next.
+	NET_SHARED_SETUP,			// The master names the mission version and who controls which force.
 };
 
 //---------------------------------------------------------------------------
@@ -396,6 +398,15 @@ struct GlobalPacketType {
 			int Stage;
 			char Scenario[64];
 		} SharedMission;
+
+		/*
+		 * This names the mission file a shared campaign loads and, per force, the seats that
+		 * control it as one bit each. It accompanies the NET_SHARED_SETUP command.
+		 */
+		struct {
+			char Scenario[64];
+			unsigned char Control[8];
+		} SharedSetup;
 	};
 };
 #pragma pack()
@@ -538,6 +549,8 @@ class SessionClass
 		int Local_Seat_ID(void) const;
 		HouseClass * Seat_House(int id) const;
 		HouseClass * Acting_House(int id) const;
+		bool Seat_Controls(int id, HouseClass const * house) const;
+		void Set_Seat_Force(int id, int house);
 		bool Is_Seat_House(HouseClass const * house) const;
 		bool Am_I_Master(void);
 		int Master_Player_ID(void) const;
@@ -581,10 +594,13 @@ class SessionClass
 		//.....................................................................
 		GameType Type;
 
-		// Shared campaigns map each network seat through SeatHouse to SharedHouseID.
+		// SeatHouse keeps transport identities separate from the forces each seat controls.
 		bool IsSharedHouse;
-		int SharedHouseID;
 		int SeatHouse[MAX_PLAYERS];
+		ForceControl::Matrix ForceSeats;
+		int ForceCount;
+		int ForceHouse[ForceControl::MAX_FORCES];
+		int SeatForce[MAX_PLAYERS];
 
 		bool IsWDT;
 		int WDTTerritory;

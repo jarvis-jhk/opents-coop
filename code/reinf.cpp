@@ -40,6 +40,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "reinf.h"
 
 #include "_map.h"
@@ -426,7 +428,7 @@ bool Do_Reinforcements(TeamTypeClass const * teamtype, WAYPOINT wp)
 	AircraftTypeClass const * dshp = AircraftTypes[AircraftTypeClass::From_Name("DSHP")];
 	if (teamtype->TaskForce->ClassCount == 1 && teamtype->TaskForce->Members[0].Class == dshp && teamtype->House->CurrentDropship < 3) {
 
-		if (!PlayerPtr->DropshipLoadouts[PlayerPtr->CurrentDropship].EntryCount) {
+		if (!Campaign_Player()->DropshipLoadouts[Campaign_Player()->CurrentDropship].EntryCount) {
 			return(NULL);
 		}
 
@@ -434,7 +436,7 @@ bool Do_Reinforcements(TeamTypeClass const * teamtype, WAYPOINT wp)
 		dropship_taskforce->Members[0] = EnlistedMemberClass(1, dshp);
 
 		int classcount;
-		for (classcount = 1; classcount <= PlayerPtr->DropshipLoadouts[PlayerPtr->CurrentDropship].EntryCount; classcount++) {
+		for (classcount = 1; classcount <= Campaign_Player()->DropshipLoadouts[Campaign_Player()->CurrentDropship].EntryCount; classcount++) {
 			TechnoTypeClass const * obj = teamtype->House->DropshipLoadouts[teamtype->House->CurrentDropship].Fetch(classcount - 1);
 			dropship_taskforce->Members[classcount] = EnlistedMemberClass(1, obj);
 		}
@@ -512,7 +514,7 @@ bool Do_Reinforcements(TeamTypeClass const * teamtype, WAYPOINT wp)
 	/*
 	**	Announce when the reinforcements have arrived.
 	*/
-	if (Create_Reinforcement(teamtype, object, origin, wp != -1) && teamtype->House->Is_Ally(PlayerPtr)) {
+	if (Create_Reinforcement(teamtype, object, origin, wp != -1) && teamtype->House->Is_Ally(Campaign_Player())) {
 		LastRadarEventCell = origin;
 		Speak(VOX_REINFORCEMENTS);
 	}

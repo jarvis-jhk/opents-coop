@@ -10,6 +10,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "spawner.h"
 
 #include "spawnerconfig.h"
@@ -532,8 +534,8 @@ void Spawner_Apply_Campaign_State(void)
 		if (Scen->CarryOverCap != -1) {
 			money = std::min<double>(money, Scen->CarryOverCap);
 		}
-		PlayerPtr->Refund_Money((int)money);
-		PlayerPtr->Control.InitialCredits += (int)money;
+		Campaign_Player()->Refund_Money((int)money);
+		Campaign_Player()->Control.InitialCredits += (int)money;
 	}
 
 	if (Scen->IsInheritTimer && SpawnConfig.CarryOverTimer > 0) {

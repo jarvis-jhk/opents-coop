@@ -154,13 +154,15 @@ void Test_Reader(void)
 void Test_Event_Contract(void)
 {
 	Check(EventClass::LATENCYFUDGE == 35, "the last inherited event keeps numeric ID 35");
-	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::SELECTED == 38 && EventClass::LAST_EVENT == 39, "new events append without renumbering inherited events");
+	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::SELECTED == 38 && EventClass::FORCE == 39 && EventClass::LAST_EVENT == 40, "new events append without renumbering inherited events");
 	Check(EventClass::EventLength[EventClass::NETWORK_REPORT] == sizeof(NetworkReportType) && sizeof(NetworkReportType) == 6, "NETWORK_REPORT uses its six-byte payload");
 	Check(std::strcmp(EventClass::EventNames[EventClass::NETWORK_REPORT], "NETWORK_REPORT") == 0, "NETWORK_REPORT has a diagnostic name");
 	Check(EventClass::EventLength[EventClass::ABANDON_COUNT] == sizeof(AbandonCountType) && sizeof(AbandonCountType) == 12, "ABANDON_COUNT uses its twelve-byte payload");
 	Check(std::strcmp(EventClass::EventNames[EventClass::ABANDON_COUNT], "ABANDON_COUNT") == 0, "ABANDON_COUNT has a diagnostic name");
 	Check(EventClass::EventLength[EventClass::SELECTED] == sizeof(TargetClass), "SELECTED carries one target");
 	Check(std::strcmp(EventClass::EventNames[EventClass::SELECTED], "SELECTED") == 0, "SELECTED has a diagnostic name");
+	Check(EventClass::EventLength[EventClass::FORCE] == sizeof(int), "FORCE carries one house index");
+	Check(std::strcmp(EventClass::EventNames[EventClass::FORCE], "FORCE") == 0, "FORCE has a diagnostic name");
 	Check(EventClass::NETWORK_RTT_UNAVAILABLE == UINT16_MAX, "the unavailable RTT sentinel is uint16 max");
 	Check(sizeof(EventClass) == 46 && EnvelopeSize == 17, "the report fits without changing full or envelope event layouts");
 }
@@ -901,6 +903,18 @@ void Test_Global_Packets(void)
 	std::memset(packet.SharedMission.Scenario, 'x', sizeof(packet.SharedMission.Scenario));
 	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::UNTERMINATED_NAME,
 		"a campaign decision requires a terminated scenario name");
+
+	packet = Global_Packet(NET_SHARED_SETUP);
+	std::strcpy(packet.SharedSetup.Scenario, "Maps/Missions/gdi1a.coop2.map");
+	packet.SharedSetup.Control[0] = 0x01;
+	packet.SharedSetup.Control[1] = 0x02;
+	Check_Global_Error(packet, packet_size, guest, NetGlobal::DecodeError::SENDER_NOT_MASTER,
+		"a mission version choice requires the master");
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::NONE,
+		"the master may name the mission version and force control");
+	std::memset(packet.SharedSetup.Scenario, 'x', sizeof(packet.SharedSetup.Scenario));
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::UNTERMINATED_NAME,
+		"a mission version choice requires a terminated scenario name");
 
 	NetGlobal::RejectionCounters counters;
 	NetGlobal::RejectionRecord first = counters.Record(NetGlobal::DecodeError::INVALID_LENGTH);

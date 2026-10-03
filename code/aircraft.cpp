@@ -91,6 +91,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "aircraft.h"
 
 #include "_map.h"
@@ -1292,8 +1294,8 @@ int AircraftClass::Do_MISSION_MOVE_Normal(void)
 					proceed_to_wp = true;
 				}
 				if (proceed_to_wp) {
-					WaypointClass * wp = PlayerPtr->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
-					WaypointClass * nwp = PlayerPtr->Paths[CurrentPath]->Get_Next_Waypoint(wp);
+					WaypointClass * wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
+					WaypointClass * nwp = Waypoint_House(House)->Paths[CurrentPath]->Get_Next_Waypoint(wp);
 					Execute_Waypoint_Path(nwp);
 				}
 			}
@@ -1627,8 +1629,8 @@ int AircraftClass::Do_MISSION_PATROL(void)
 					proceed_to_wp = true;
 				}
 				if (proceed_to_wp) {
-					WaypointClass * wp = PlayerPtr->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
-					WaypointClass * nwp = PlayerPtr->Paths[CurrentPath]->Get_Next_Waypoint(wp);
+					WaypointClass * wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
+					WaypointClass * nwp = Waypoint_House(House)->Paths[CurrentPath]->Get_Next_Waypoint(wp);
 					Execute_Waypoint_Path(nwp);
 				}
 			}
@@ -2863,7 +2865,7 @@ AbstractClass * AircraftClass::Good_Fire_Location(AbstractClass * target) const
 				Coord newcoord = Move_Coord(tcoord, (Dir256)face, r);
 				Cell newcell = newcoord.As_Cell();
 
-				if (Map.In_Local_Radar(newcell) && (Session.Type != GAME_NORMAL || Map[newcell].IsVisible[PlayerPtr]) && Cell_Seems_Ok(newcell, true)) {
+				if (Map.In_Local_Radar(newcell) && (Session.Type != GAME_NORMAL || Map[newcell].IsVisible[Campaign_Player()]) && Cell_Seems_Ok(newcell, true)) {
 					int dist;
 					if (altcoord != COORD_NONE) {
 						dist = Point2D(newcoord).Distance_To(Point2D(altcoord));

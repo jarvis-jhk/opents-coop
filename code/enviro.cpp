@@ -13,6 +13,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "enviro.h"
 
 #include "globals.h"
@@ -54,8 +56,8 @@ EnvironmentClass::~EnvironmentClass(void)
 /// <summary>
 /// Captures the state that carries over into the next mission.
 /// This routine is called as a campaign mission is won, before the next scenario is
-/// started. The global flags, spare money, mission timer, difficulty and stage are
-/// remembered here. The next scenario assigns house handicaps while reading its houses;
+/// started. The global flags, the money the player's forces have left, the mission timer,
+/// difficulty and stage are remembered here. The next scenario assigns house handicaps while reading its houses;
 /// Restore hands the remaining campaign state to the new mission afterward.
 /// </summary>
 void EnvironmentClass::Store(void)
@@ -64,9 +66,9 @@ void EnvironmentClass::Store(void)
 		Globals[i] = Scen->GlobalFlags[i].Value;
 	}
 
-	CarryOverMoney = PlayerPtr->Available_Money();
+	CarryOverMoney = Forces_Money();
 	MissionTimer = Scen->MissionTimer;
-	Difficulty = PlayerPtr->Difficulty;
+	Difficulty = Campaign_Player()->Difficulty;
 	Stage = Scen->Stage;
 }
 
@@ -90,8 +92,8 @@ void EnvironmentClass::Restore(void)
 		money = std::min<double>(money, cap);
 	}
 
-	PlayerPtr->Refund_Money((int)money);
-	PlayerPtr->Control.InitialCredits += (int)money;
+	Campaign_Player()->Refund_Money((int)money);
+	Campaign_Player()->Control.InitialCredits += (int)money;
 
 	if (Scen->IsInheritTimer) {
 		if (MissionTimer > 0) {

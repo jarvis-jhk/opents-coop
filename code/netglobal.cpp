@@ -111,6 +111,7 @@ namespace NetGlobal
 			case NET_DESYNC_CONTINUE:
 			case NET_LOAD_GAME:
 			case NET_SHARED_MISSION:
+			case NET_SHARED_SETUP:
 				return(true);
 
 			default:
@@ -185,6 +186,15 @@ namespace NetGlobal
 					return(DecodeError::INVALID_CAMPAIGN_STAGE);
 				}
 				if (!Has_Terminator(packet.SharedMission.Scenario, sizeof(packet.SharedMission.Scenario))) {
+					return(DecodeError::UNTERMINATED_NAME);
+				}
+				break;
+
+			case NET_SHARED_SETUP:
+				if (!Sender_Is_Master(context)) {
+					return(DecodeError::SENDER_NOT_MASTER);
+				}
+				if (!Has_Terminator(packet.SharedSetup.Scenario, sizeof(packet.SharedSetup.Scenario))) {
 					return(DecodeError::UNTERMINATED_NAME);
 				}
 				break;

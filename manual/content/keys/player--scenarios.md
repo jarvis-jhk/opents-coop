@@ -13,7 +13,7 @@ when_omitted:
 Player=GDI
 ```
 
-`Player` names the house the player controls in a campaign mission. The name can be the country's ID or its full name, ignoring case. The player commands that house's units and structures, spends its credits, and builds from its build options. The map selection screen after the mission reads its campaign progression from the same house.
+`Player` names the main house the player controls in a campaign mission. [Campaign mission variants](/formats/campaign-variants/) can declare additional human forces. The name can be the country's ID or its full name, ignoring case. The player commands that house's units and structures, spends its credits, and builds from its build options. The map selection screen after the mission reads its campaign progression from the same house.
 
 In a multiplayer or skirmish game, the lobby or the launch file assigns houses and this key is ignored.
 

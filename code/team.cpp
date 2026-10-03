@@ -72,6 +72,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "team.h"
 
 #include "_map.h"
@@ -3138,7 +3140,7 @@ void TeamClass::TMission_LOOP(TeamMissionClass * mission, bool)
 /// </summary>
 void TeamClass::TMission_WIN(TeamMissionClass * mission, bool)
 {
-	PlayerPtr->Flag_To_Win();
+	Campaign_Player()->Flag_To_Win();
 	IsNextMission = true;
 }
 
@@ -3149,7 +3151,7 @@ void TeamClass::TMission_WIN(TeamMissionClass * mission, bool)
 /// </summary>
 void TeamClass::TMission_LOSE(TeamMissionClass * mission, bool)
 {
-	PlayerPtr->Flag_To_Lose();
+	Campaign_Player()->Flag_To_Lose();
 	IsNextMission = true;
 }
 

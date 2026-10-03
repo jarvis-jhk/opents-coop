@@ -56,6 +56,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "init.h"
 #include "hotkeygroup.h"
 
@@ -3169,6 +3171,27 @@ class CenterTeamCommandClass : public CommandClass
 };
 
 
+class NextForceCommandClass : public CommandClass
+{
+	public:
+		virtual char const * Get_Unique_Name(void) const {
+			return("NextForce");
+		}
+		virtual char const * Get_Display_Name(void) const {
+			return("Next force");
+		}
+		virtual char const * Get_Category(void) const {
+			return(Fetch_String(TXT_SELECTION));
+		}
+		virtual char const * Get_Description(void) const {
+			return("Show the next campaign force you control.");
+		}
+		virtual void Execute(void) const {
+			Show_Next_Force();
+		}
+};
+
+
 class PrevObjectCommandClass : public CommandClass
 {
 	public:
@@ -5322,6 +5345,8 @@ static void Claim_Free_Key(KeyNumType key, CommandClass const * command)
 static void Init_Commands(void)
 {
 	AllCommands.Add(new FollowCommandClass);
+	CommandClass * nextforce = new NextForceCommandClass;
+	AllCommands.Add(nextforce);
 
 	AllCommands.Add(new View1CommandClass);
 	AllCommands.Add(new View2CommandClass);
@@ -5490,6 +5515,7 @@ static void Init_Commands(void)
 	}
 	HotkeyCommands.Add_Index(KN_ESC, optcmd);
 
+	Claim_Free_Key(KN_F9, nextforce);
 	Claim_Free_Key(KN_RETURN, chatallcmd);
 	Claim_Free_Key(KN_BACKSPACE, chatteamcmd);
 }

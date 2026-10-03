@@ -1,0 +1,39 @@
+<!--
+	*************************************************************************
+	                              O P E N  T S
+	*************************************************************************
+	SPDX-License-Identifier: GPL-3.0-or-later
+	Copyright 2026 OpenTS contributors
+
+	See LICENSE.md for applicable additional terms and warranty disclaimers.
+-->
+<rml>
+<head>
+	<title>Mission version</title>
+	<link type="text/template" href="dialog.rml"/>
+	<link type="text/rcss" href="forces.rcss"/>
+</head>
+<body template="dialog" data-model="forces">
+	<p id="title">{{mission}}</p>
+	<span class="caption" id="cap-versions">Version:</span>
+	<div id="versions" class="list"><div class="rows">
+		<div class="item" data-for="entry : variants" data-class-selected="it_index == selected" data-event-click="queue('variant', it_index)">{{entry.label}} ({{entry.forces.size}})</div>
+	</div></div>
+	<span class="caption" id="cap-control">Who controls which force:</span>
+	<div id="control">
+		<div class="matrix-row header">
+			<span class="cell-name"></span>
+			<span class="cell-force" data-for="column : columns">{{column.name}}</span>
+		</div>
+		<div class="matrix-row" data-for="row, seat : rows">
+			<span class="cell-name">{{row.name}}</span>
+			<span class="cell-force" data-for="cell, force : row.cells"><input type="checkbox" data-attrif-checked="cell" data-event-click="queue('cell', seat * 8 + force)"/></span>
+		</div>
+	</div>
+	<p id="invalid" data-if="!valid">Every force needs a player, and every player a force.</p>
+	<div id="buttons">
+		<button id="ok" data-class-disabled="!valid" data-event-click="queue('ok')">[[TXT_OK]]</button>
+		<button id="cancel" data-event-click="queue('cancel')">[[TXT_CANCEL]]</button>
+	</div>
+</body>
+</rml>

@@ -13,6 +13,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "tactical.h"
 
 #include "_alpha.h"
@@ -3334,7 +3336,7 @@ void Tactical::Select_These(Rect const & rect, void (*select_callback)(ObjectCla
  *=============================================================================================*/
 void Tactical::Flag_Cell(CellClass & cell)
 {
-	if (Map.DrawFlags == GS_REDRAW_DIRTY && cell.LastRedrawFrame != Frame && cell.IsMapped[PlayerPtr]) {
+	if (Map.DrawFlags == GS_REDRAW_DIRTY && cell.LastRedrawFrame != Frame && cell.IsMapped[Campaign_Player()]) {
 		cell.LastRedrawFrame = Frame;
 
 		Coord coord = cell.Cell_Coord();
@@ -3342,7 +3344,7 @@ void Tactical::Flag_Cell(CellClass & cell)
 		Coord ground = Coord(coord.X, coord.Y, 0);
 
 		Point2D pixel;
-		if (cell.IsMapped[PlayerPtr] && cell.IsVisible[PlayerPtr]) {
+		if (cell.IsMapped[Campaign_Player()] && cell.IsVisible[Campaign_Player()]) {
 			Coord_To_Pixel(ground, pixel);
 		} else {
 			pixel = Coord_To_Pixel_Absolute(ground);

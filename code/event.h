@@ -112,6 +112,7 @@ class EventClass
 			NETWORK_REPORT,
 			ABANDON_COUNT,
 			SELECTED,			// a player selected an object, which springs its selection trigger
+			FORCE,				// a player's later production and placement orders act for this force
 
 			LAST_EVENT,			// one past the last event
 		};

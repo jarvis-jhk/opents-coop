@@ -36,6 +36,7 @@
 #include "surface.h"
 
 #include <cstdio>
+#include <cstring>
 
 
 namespace {
@@ -43,6 +44,11 @@ namespace {
 	bool Received = false;
 	int ReceivedStage = -1;
 	char ReceivedScenario[64] = "";
+
+	// The master's mission version and force control. It can arrive while this machine loads.
+	bool ReceivedSetup = false;
+	char SetupScenario[64] = "";
+	unsigned char SetupControl[8] = {};
 }
 
 
@@ -54,6 +60,13 @@ void Shared_Campaign_Receive(GlobalPacketType const & packet)
 	if (!Session.IsSharedHouse) {
 		return;
 	}
+	if (packet.Command == NET_SHARED_SETUP) {
+		ReceivedSetup = true;
+		std::snprintf(SetupScenario, sizeof(SetupScenario), "%s", packet.SharedSetup.Scenario);
+		std::memcpy(SetupControl, packet.SharedSetup.Control, sizeof(SetupControl));
+		DebugString("Shared campaign: the master names version %s\n", SetupScenario);
+		return;
+	}
 	Received = true;
 	ReceivedStage = packet.SharedMission.Stage;
 	std::snprintf(ReceivedScenario, sizeof(ReceivedScenario), "%s", packet.SharedMission.Scenario);
@@ -62,16 +75,12 @@ void Shared_Campaign_Receive(GlobalPacketType const & packet)
 
 
 /// <summary>
-/// Names the next mission to every other machine and waits, at most the connection timeout,
-/// until each has acknowledged it.
+/// Sends a decision of the master to every other machine and waits, at most the connection
+/// timeout, until each has acknowledged it.
 /// </summary>
-static void Shared_Campaign_Send(int stage, char const * scenario)
+static void Shared_Campaign_Broadcast(GlobalPacketType & packet)
 {
-	GlobalPacketType packet{};
-	NetGlobal::Initialize_Packet(packet, NET_SHARED_MISSION);
 	std::snprintf(packet.Name, sizeof(packet.Name), "%s", Session.Players[0]->Name);
-	packet.SharedMission.Stage = stage;
-	std::snprintf(packet.SharedMission.Scenario, sizeof(packet.SharedMission.Scenario), "%s", scenario);
 
 	for (int index = 1; index < Session.Players.Count(); index++) {
 		Ipx.Send_Global_Message(&packet, sizeof(packet), 1, &Session.Players[index]->Address);
@@ -84,6 +93,20 @@ static void Shared_Campaign_Send(int stage, char const * scenario)
 		Windows_Message_Handler();
 		Sleep(10);
 	}
+}
+
+
+/// <summary>
+/// Names the next mission to every other machine and waits, at most the connection timeout,
+/// until each has acknowledged it.
+/// </summary>
+static void Shared_Campaign_Send(int stage, char const * scenario)
+{
+	GlobalPacketType packet{};
+	NetGlobal::Initialize_Packet(packet, NET_SHARED_MISSION);
+	packet.SharedMission.Stage = stage;
+	std::snprintf(packet.SharedMission.Scenario, sizeof(packet.SharedMission.Scenario), "%s", scenario);
+	Shared_Campaign_Broadcast(packet);
 	DebugString("Shared campaign: named stage %d, %s, to the others\n", stage, scenario);
 }
 
@@ -102,17 +125,24 @@ static void Shared_Campaign_Show(char const * text)
 
 
 /// <summary>
-/// Waits for the master to name the next mission.
+/// Waits for the master's decision, until the flag its arrival sets is up.
 /// </summary>
 /// <returns>bool; Did the master name one? False when this player leaves with Esc or every
-/// other machine has gone, or the connection timeout expires.</returns>
-static bool Shared_Campaign_Wait(void)
+/// other machine has gone during a connected wait, or the connection timeout expires.</returns>
+static bool Shared_Campaign_Wait(bool const & received, bool connected = true)
 {
 	char text[160];
-	std::snprintf(text, sizeof(text), "Waiting for %s to choose. Press Esc to leave.", Session.MasterPlayerName);
+	char const * master = Session.MasterPlayerName;
+	for (int index = 0; index < Session.Players.Count(); index++) {
+		if (Session.Players[index]->Player.ID == Session.Master_Player_ID()) {
+			master = Session.Players[index]->Name;
+			break;
+		}
+	}
+	std::snprintf(text, sizeof(text), "Waiting for %s to choose. Press Esc to leave.", master);
 
 	CDTimerClass<SystemTimerClass> timer = Session.ConnTimeout;
-	while (!Received) {
+	while (!received) {
 		Shared_Campaign_Show(text);
 		Call_Back();
 		Windows_Message_Handler();
@@ -125,7 +155,7 @@ static bool Shared_Campaign_Wait(void)
 			DebugString("Shared campaign: the master did not choose before the connection timeout\n");
 			return(false);
 		}
-		if (Ipx.Num_Connections() == 0) {
+		if (connected && Ipx.Num_Connections() == 0) {
 			DebugString("Shared campaign: every other machine has gone\n");
 			return(false);
 		}
@@ -175,7 +205,7 @@ bool Shared_Campaign_Next(bool won)
 		}
 		Shared_Campaign_Send(stage, scenario);
 	} else {
-		if (!Shared_Campaign_Wait()) {
+		if (!Shared_Campaign_Wait(Received)) {
 			return(false);
 		}
 		stage = ReceivedStage;
@@ -188,4 +218,38 @@ bool Shared_Campaign_Next(bool won)
 	}
 
 	return(Spawner_Continue_Shared_Campaign(scenario, stage, won));
+}
+
+
+/// <summary>
+/// Agrees the mission version and force control of a shared campaign before the mission
+/// loads. The master names its own choice to every other machine; each other machine waits
+/// for it and takes it over.
+/// </summary>
+/// <param name="scenario">The master's chosen mission file; replaced by it at the others.</param>
+/// <param name="control">The master's control matrix; replaced by it at the others.</param>
+/// <returns>bool; Was a version agreed? False when this player left or the master never chose.</returns>
+bool Shared_Campaign_Setup(std::string & scenario, ForceControl::Matrix & control)
+{
+	if (Session.Local_Seat_ID() == Session.Master_Player_ID()) {
+		GlobalPacketType packet{};
+		NetGlobal::Initialize_Packet(packet, NET_SHARED_SETUP);
+		if (scenario.size() >= sizeof(packet.SharedSetup.Scenario)) {
+			DebugString("Shared campaign scenario name is too long\n");
+			scenario.clear();
+		}
+		std::snprintf(packet.SharedSetup.Scenario, sizeof(packet.SharedSetup.Scenario), "%s", scenario.c_str());
+		std::memcpy(packet.SharedSetup.Control, control.data(), sizeof(packet.SharedSetup.Control));
+		Shared_Campaign_Broadcast(packet);
+		DebugString("Shared campaign: named version %s to the others\n", scenario.c_str());
+		return(!scenario.empty());
+	}
+
+	if (!Shared_Campaign_Wait(ReceivedSetup, false)) {
+		return(false);
+	}
+	ReceivedSetup = false;
+	scenario = SetupScenario;
+	std::memcpy(control.data(), SetupControl, sizeof(SetupControl));
+	return(!scenario.empty());
 }

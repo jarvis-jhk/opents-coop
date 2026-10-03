@@ -9,6 +9,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "vanim.h"
 
 #include "_convert.h"
@@ -160,7 +162,7 @@ VoxelAnimClass::~VoxelAnimClass(void)
 /// <returns>bool; Was the animation queued for rendering?</returns>
 bool VoxelAnimClass::Render(Rect &cliprect, bool forced, bool extras_only) const
 {
-	if (Map[Center_Coord()].IsVisible[PlayerPtr]) {
+	if (Map[Center_Coord()].IsVisible[Campaign_Player()]) {
 		IsToDisplay = true;
 	}
 	return(BASECLASS::Render(cliprect, forced, false));

@@ -75,6 +75,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "queue.h"
 
 #include "_keyboar.h"
@@ -451,7 +453,7 @@ bool Queue_Mission(TargetClass whom, MissionType mission, TargetClass & target, 
  *=========================================================================*/
 bool Queue_Options(void)
 {
-	if (PlayerPtr->IsToWin || PlayerPtr->IsToLose || PlayerPtr->IsToDie) {
+	if (Campaign_Player()->IsToWin || Campaign_Player()->IsToLose || Campaign_Player()->IsToDie) {
 		return(false);
 	}
 
@@ -3774,6 +3776,19 @@ static void Compute_Game_CRC(void)
 	//	A random #
 	//------------------------------------------------------------------------
 	Add_CRC(&GameCRC, Scen->RandomNumber);
+	if (Session.IsSharedHouse) {
+		for (int force = 0; force < Session.ForceCount; force++) {
+			Add_CRC(&GameCRC, Session.ForceSeats[force]);
+			HouseClass * house = Force_House(force);
+			if (house != NULL) {
+				Add_CRC(&GameCRC, house->Available_Money());
+			}
+		}
+		for (int seat = 0; seat < Session.Players.Count(); seat++) {
+			Add_CRC(&GameCRC, Session.SeatForce[seat]);
+		}
+	}
+
 
 }	/* end of Compute_Game_CRC */
 

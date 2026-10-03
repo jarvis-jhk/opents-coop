@@ -3611,6 +3611,24 @@ Brief:
       source: code/scenario.cpp
       guard: null
     level: ScenarioClass
+Briefing:
+  key: Briefing
+  scopes:
+  - applies_to:
+    - mission descriptions
+    file: mission.ini
+    section:
+      kind: identifier
+      source: mission
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: ''
+      declared_in: MissionMetadata
+      member: null
+      source: code/scenario.cpp
+      guard: null
+    level: MissionMetadata
 Bright:
   key: Bright
   scopes:
@@ -15009,6 +15027,21 @@ Name:
       source: code/themeini.cpp
       guard: null
     level: ThemeControl
+  - applies_to:
+    - mission descriptions
+    file: mission.ini
+    section:
+      kind: identifier
+      source: mission
+    value_type: string
+    status: needs_review
+    _provenance:
+      default_candidate: ''
+      declared_in: MissionMetadata
+      member: null
+      source: code/scenario.cpp
+      guard: null
+    level: MissionMetadata
 NamedCivilians:
   key: NamedCivilians
   scopes:
@@ -25241,6 +25274,24 @@ Value:
       source: code/tiberium.cpp
       guard: null
     level: TiberiumClass
+VariantName:
+  key: VariantName
+  scopes:
+  - applies_to:
+    - scenarios
+    file: map file
+    section:
+      kind: literal
+      name: Basic
+    value_type: string
+    status: generated
+    _provenance:
+      default_candidate: null
+      declared_in: CampaignForces
+      member: null
+      source: code/campaignforces.cpp
+      guard: null
+    level: CampaignForces
 Vegetation:
   key: Vegetation
   scopes:

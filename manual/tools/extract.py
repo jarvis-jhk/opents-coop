@@ -24,6 +24,12 @@ import section_selectors
 # variables into useful file/section/scope labels.  Ordinary Class::Read_INI
 # methods not listed here are enrolled automatically by ini_inventory.
 ADAPTER_UNITS = [
+    ("scenario.cpp", "MissionMetadata", [":Read_Mission_Metadata"],
+     {"file": "mission.ini", "group": "mission descriptions",
+      "section_vars": {"name_key": section_selectors.identifier("mission"),
+                       "briefing_key": section_selectors.identifier("mission")}}),
+    ("campaignforces.cpp", "CampaignForces", [":Mission_Forces", ":Read_Mission_Variant"],
+     {"file": "map file", "group": "scenarios"}),
     ("base.cpp", "BaseClass", ["Read_INI"],
      {"file": "map file", "group": "scenario bases",
       "section_vars": {

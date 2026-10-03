@@ -78,6 +78,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "foot.h"
 
 #include "_astar.h"
@@ -1887,8 +1889,8 @@ bool FootClass::Enter_Idle_Mode(bool, bool resume_waypoint)
 
 		if (CurrentMission != MISSION_PATROL || Status == 0) {
 			if (CurrentPath != PATH_NONE && resume_waypoint) {
-				WaypointClass * wp = PlayerPtr->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
-				WaypointClass * next_wp = PlayerPtr->Paths[CurrentPath]->Get_Next_Waypoint(wp);
+				WaypointClass * wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
+				WaypointClass * next_wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Next_Waypoint(wp);
 				Execute_Waypoint_Path(next_wp);
 			}
 		}
@@ -2099,7 +2101,7 @@ void FootClass::Per_Cell_Process(PCPType why)
 	}
 
 	if (CurrentPath != PATH_NONE) {
-		WaypointPathClass * path = PlayerPtr->Paths[CurrentPath];
+		WaypointPathClass * path = Waypoint_House(House)->Paths[CurrentPath];
 		WaypointClass * next_waypoint = path->Get_Waypoint(NextWaypoint);
 		if (next_waypoint != NULL) {
 			Cell wp_cell = next_waypoint->Location;
@@ -3885,7 +3887,7 @@ void FootClass::Set_Waypoint_Path(PathType path, char index)
 	if (path != PATH_NONE) {
 		CurrentPath = path;
 		NextWaypoint = index;
-		WaypointClass *wpc = PlayerPtr->Paths[path]->Get_Waypoint(index);
+		WaypointClass *wpc = Waypoint_House(House)->Paths[path]->Get_Waypoint(index);
 		WaypointTargetCell = wpc->Location.As_Cell();
 	} else {
 		CurrentPath = PATH_NONE;
@@ -3913,7 +3915,7 @@ void FootClass::Execute_Waypoint_Path(WaypointClass * waypoint)
 	}
 
 	if (waypoint != NULL) {
-		PlayerPtr->Fetch_Waypoint_Data(waypoint, CurrentPath, NextWaypoint);
+		Waypoint_House(House)->Fetch_Waypoint_Data(waypoint, CurrentPath, NextWaypoint);
 
 		Coord waypoint_coord = waypoint->Location;
 		ObjectClass * occupying_object = Map[waypoint_coord].Cell_Occupier();
@@ -3948,7 +3950,7 @@ void FootClass::Execute_Waypoint_Path(WaypointClass * waypoint)
 
 			ActionType occupier_action = What_Action(occupying_object, true);
 
-			if (PlayerPtr->Is_Ally(occupying_techno->House)) {
+			if (Waypoint_House(House)->Is_Ally(occupying_techno->House)) {
 				if (occupying_techno->RTTI == RTTI_BUILDING) {
 					building = (BuildingClass *)occupying_techno;
 
@@ -3960,7 +3962,7 @@ void FootClass::Execute_Waypoint_Path(WaypointClass * waypoint)
 						Ammo < TClass->MaxAmmo &&
 						Ammo != -1);
 
-					is_allied_building = building->House->Is_Ally(PlayerPtr);
+					is_allied_building = building->House->Is_Ally(Waypoint_House(House));
 
 					if ((needs_repair || needs_reload) &&
 						is_allied_building &&
@@ -4735,8 +4737,8 @@ Cell FootClass::Move_Order(Cell const & where, bool consider_fog)
 void FootClass::Advance_Waypoint_Path(void)
 {
 	if (CurrentPath != PATH_NONE) {
-		WaypointClass * wp = PlayerPtr->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
-		WaypointClass * next_wp = PlayerPtr->Paths[CurrentPath]->Get_Next_Waypoint(wp);
+		WaypointClass * wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Waypoint(NextWaypoint);
+		WaypointClass * next_wp = Waypoint_House(House)->Paths[CurrentPath]->Get_Next_Waypoint(wp);
 		Execute_Waypoint_Path(next_wp);
 	}
 }

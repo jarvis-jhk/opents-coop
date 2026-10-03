@@ -14,6 +14,21 @@ registered_commands:
     source: code/init.cpp
     class: FollowCommandClass
     guard: null
+- id: NextForce
+  route_id: nextforce
+  kind: registered
+  title: Next force
+  description: Show the next campaign force you control.
+  category: Selection
+  audience: player
+  availability:
+    builds:
+    - release
+    - debug
+  _provenance:
+    source: code/init.cpp
+    class: NextForceCommandClass
+    guard: null
 - id: View1
   route_id: view1
   kind: registered

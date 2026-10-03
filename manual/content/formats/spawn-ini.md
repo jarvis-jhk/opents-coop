@@ -89,7 +89,7 @@ Of the [match options](#the-options-every-house-plays-under), a campaign mission
 
 ## A shared-house campaign
 
-With `IsSinglePlayer=yes` and at least one `[OtherN]` player, every player controls the mission's `[Basic] Player=` house. Each machine keeps its own name, color and network address; orders execute in seat order. All players use the same mission, campaign, difficulty pair, seed and carry-over values. Use matching builds and target platforms on every machine.
+With `IsSinglePlayer=yes` and at least one `[OtherN]` player, the version chooser assigns players to the mission's human forces. Without extra forces, every player shares the mission's `[Basic] Player=` house. [Campaign mission variants](/formats/campaign-variants/) defines the files and control matrix. Each machine keeps its own name, color and network address; orders execute in seat order. All players use the same mission, campaign, difficulty pair, seed and carry-over values. Use matching builds and target platforms on every machine.
 
 After a win, the host selects the next mission from the map-selection screen or the mission’s preset successor. After a loss, the host chooses whether to replay. Campaign-ending and one-time missions exit without restarting. Other players wait for that choice for at most `ConnTimeout` ticks, as defined under [A game against other machines](#a-game-against-other-machines). Each machine writes the selected mission into its own `SPAWN.INI` and starts another game process with the original command line. Keep the launch file writable and keep every player connected through the transition; the next launch retains the original roster. If writing the file or starting the process fails, that machine stops advancing.
 

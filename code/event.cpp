@@ -725,7 +725,14 @@ void EventClass::Execute(void)
 				return;
 			}
 			int const owner = subject->House != NULL ? subject->House->HeapID : -1;
-			if (!NetSemantic::Subject_Owner_Is_Valid(house->HeapID, owner)) {
+			if (Session.IsSharedHouse) {
+				if (!Session.Seat_Controls(ID, subject->House)) {
+					Log_Event_Rejection(EventRejectReason::UnauthorizedSubject, Type, ID, owner);
+					return;
+				}
+				// An order to an object acts for its owner, whichever force the sender shows.
+				house = subject->House;
+			} else if (!NetSemantic::Subject_Owner_Is_Valid(house->HeapID, owner)) {
 				Log_Event_Rejection(EventRejectReason::UnauthorizedSubject, Type, ID, owner);
 				return;
 			}
@@ -1112,10 +1119,16 @@ void EventClass::Execute(void)
 			}
 			break;
 
+		case FORCE:
+			if (Session.IsSharedHouse) {
+				Session.Set_Seat_Force(ID, Data.General.Value);
+			}
+			break;
+
 		case SELECTED:
 			techno = Data.Target.Whom.As_Techno();
 			if (techno != NULL && techno->IsActive && techno->Tag != NULL
-				&& (techno->House == house || (Session.Type == GAME_NORMAL && techno->House->Is_Player_Control()))) {
+				&& (techno->House == house || (Session.Type == GAME_NORMAL && !Session.IsSharedHouse && techno->House->Is_Player_Control()))) {
 				techno->Tag->Spring(TEVENT_SELECTED, techno);
 			}
 			break;

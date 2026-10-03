@@ -130,6 +130,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "house.h"
 
 #include "_logic.h"
@@ -2101,7 +2103,7 @@ bool HouseClass::Sees_Whole_Map(void) const
 HouseClass * HouseClass::Player_View(void) const
 {
 	if (Session.Type == GAME_NORMAL) {
-		return(Is_Player_Control() ? PlayerPtr : NULL);
+		return(Is_Player_Control() ? Campaign_Player() : NULL);
 	}
 	// The heap entry is this house, without casting away const.
 	return(IsHuman ? Houses[HeapID] : NULL);
@@ -3453,7 +3455,7 @@ void HouseClass::MPlayer_Defeated(void)
 	if (game_over) {
 		IsToDie = false;
 
-		if (PlayerPtr->IsDefeated) {
+		if (Campaign_Player()->IsDefeated) {
 			DebugString("MPlayer_Defeated() - Flag_To_Lose\n");
 			Flag_To_Lose(false);
 		} else {
@@ -8162,7 +8164,7 @@ void HouseClass::Recalc_Power_Drain(void)
 	for (int i = 0; i < Buildings.Count(); i++) {
 		BuildingClass * b = Buildings[i];
 		if (b && b->House == this && !b->IsInLimbo && b->IsDown) {
-			if (Is_Player_Control() && !b->DiscoveredBy[PlayerPtr] && Session.Type == GAME_NORMAL) continue;
+			if (Is_Player_Control() && !b->DiscoveredBy[Campaign_Player()] && Session.Type == GAME_NORMAL) continue;
 			Power += Buildings[i]->Power_Output();
 			Drain += b->Power_Drain();
 		}
@@ -8200,7 +8202,7 @@ void HouseClass::Recalc_Radar_Availability(void)
 				for (int i = 0; i < Buildings.Count(); i++) {
 					BuildingClass * b = Buildings[i];
 					if (b && b->House == this && b->IsOn && b->Class->IsRadar && !b->IsInLimbo && b->IsDown) {
-						if (Is_Player_Control() && !b->DiscoveredBy[PlayerPtr] && Session.Type == GAME_NORMAL) continue;
+						if (Is_Player_Control() && !b->DiscoveredBy[Campaign_Player()] && Session.Type == GAME_NORMAL) continue;
 						if (b->CurrentMission != MISSION_DECONSTRUCTION && b->MissionQueue != MISSION_DECONSTRUCTION) {
 							if (b->StunDuration == 0) {
 								radar_on = true;

@@ -143,6 +143,7 @@
 #include "script.h"
 #include "sdl/sdlwindow.h"
 #include "session.h"
+#include "campaignforces.h"
 #include "hotkeygroup.h"
 #include "sharedcampaign.h"
 #include "smudge.h"
@@ -362,6 +363,12 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 
 	Scen->Campaign = campaign;
 
+	std::string mission = name != NULL ? name : "";
+	if (Session.Type == GAME_NORMAL && !Session.Play && !Choose_Mission_Forces(mission)) {
+		return(false);
+	}
+	name = mission.c_str();
+
 	DebugString("\n----- Starting scnenario: %s -----\n", name);
 	DebugString("Player Count: %d\n", Session.Players.Count());
 
@@ -378,6 +385,10 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 
 	if (!Read_Scenario(name)) {
 		return(false);
+	}
+
+	if (Session.IsSharedHouse) {
+		Show_Force(Session.Acting_House(Session.Local_Seat_ID()));
 	}
 
 	Theme.Stop();
@@ -1073,6 +1084,7 @@ void Clear_Scenario(void)
 	Scen->UniqueID = 1000 * 1000;
 
 	PlayerPtr = NULL;
+	Clear_Mission_Forces();
 	Clear_Hotkey_Groups();
 
 	Scen->Reset();
@@ -1783,6 +1795,26 @@ void Multiplayer_Last_Minute_Fixups(bool official)
 }
 
 
+static void Read_Mission_Metadata(CCINIClass const & ini)
+{
+	char buffer[128];
+	std::string const base_key = Mission_INI_Key(Scen->ScenarioName);
+	char const * name_key = ini.Is_Present(Scen->ScenarioName, "Name") ? Scen->ScenarioName : base_key.c_str();
+	char const * briefing_key = ini.Is_Present(Scen->ScenarioName, "Briefing") ? Scen->ScenarioName : base_key.c_str();
+	if (ini.Is_Present(name_key, "Name")) {
+		ini.Get_String(name_key, "Name", "", Scen->Description, sizeof(Scen->Description));
+	}
+
+	if (ini.Is_Present(briefing_key, "Briefing")) {
+		ini.Get_String(briefing_key, "Briefing", "", buffer, sizeof(buffer));
+
+		if (strlen(buffer) > 0) {
+			ini.Get_TextBlock(buffer, Scen->BriefingText, sizeof(Scen->BriefingText));
+		}
+	}
+}
+
+
 /// <summary>
 /// Reads a scenario from the database supplied.
 /// This is the workhorse of scenario startup. Whatever scenario was in place is cleared,
@@ -2159,17 +2191,7 @@ ScenarioState Read_Scenario_INI(CCINIClass const & ini, bool is_mapgen)
 		if (cfile.Is_Available() == true) {
 			mini.Load(cfile, false);
 
-			if (mini.Is_Present(Scen->ScenarioName, "Name")) {
-				mini.Get_String(Scen->ScenarioName, "Name", "", Scen->Description, sizeof(Scen->Description));
-			}
-
-			if (mini.Is_Present(Scen->ScenarioName, "Briefing")) {
-				mini.Get_String(Scen->ScenarioName, "Briefing", "", buffer, sizeof(buffer));
-
-				if (strlen(buffer) > 0) {
-					mini.Get_TextBlock(buffer, Scen->BriefingText, sizeof(Scen->BriefingText));
-				}
-			}
+			Read_Mission_Metadata(mini);
 		}
 	}
 
@@ -2332,28 +2354,19 @@ void Write_Scenario_INI(char const * fname, bool mplayer)
 
 
 /// <summary>
-/// Gives each person sharing the campaign mission's player house a seat house, created in house
-/// order, the lowest color first, so every machine numbers the seats alike. A seat house owns
-/// nothing and takes no part in the mission; an order sent under its id acts on the shared house.
+/// Gives each person playing a shared campaign mission a seat house, created in seat order,
+/// so every machine numbers the seats alike. A seat house owns nothing and takes no part in
+/// the mission; an order sent under its id acts on a force that seat controls.
 /// </summary>
 static void Assign_Seat_Houses(void)
 {
-	Session.SharedHouseID = PlayerPtr->HeapID;
 	for (int seat = 0; seat < MAX_PLAYERS; seat++) {
 		Session.SeatHouse[seat] = -1;
 	}
 
-	bool assigned[MAX_PLAYERS] = {};
-	for (int i = 0; i < Session.Players.Count(); i++) {
-		int index = -1;
-		for (int j = 0; j < Session.Players.Count(); j++) {
-			if (!assigned[j] && (index == -1 || Session.Players[j]->Player.Color < Session.Players[index]->Player.Color)) {
-				index = j;
-			}
-		}
-		assigned[index] = true;
-
-		NodeNameType * player = Session.Players[index];
+	std::vector<int> const order = Seat_Player_Order();
+	for (int i = 0; i < (int)order.size(); i++) {
+		NodeNameType * player = Session.Players[order[i]];
 		HouseClass * housep = new HouseClass(PlayerPtr->Class);
 		housep->IniName = player->Name;
 		housep->IsHuman = false;
@@ -2363,7 +2376,7 @@ static void Assign_Seat_Houses(void)
 		player->Player.ID = i;
 		Session.SeatHouse[i] = housep->HeapID;
 
-		DebugString("Seat %d is %s in house %d, sharing house %d\n", i, player->Name, housep->HeapID, Session.SharedHouseID);
+		DebugString("Seat %d is %s in house %d\n", i, player->Name, housep->HeapID);
 	}
 }
 
@@ -3935,6 +3948,10 @@ bool ScenarioClass::Read_INI(CCINIClass const & ini)
 	PlayerPtr->IsPlayerControl = true;
 	PlayerPtr->CurrentDropship = 0;
 
+	if (Session.Type == GAME_NORMAL && !Assign_Mission_Forces(ini)) {
+		return(false);
+	}
+
 	Session.Update_Progress(58);
 	Call_Back();
 
@@ -3987,7 +4004,7 @@ bool ScenarioClass::Write_INI(CCINIClass & ini, bool mplayer) const
 	ini.Put_IntList(BASIC, "AllowableUnitMaximums", AllowableUnitMaximums);
 
 	if (!mplayer) {
-		ini.Put_HousesType(BASIC, "Player", PlayerPtr->Class->House);
+		ini.Put_HousesType(BASIC, "Player", Campaign_Player()->Class->House);
 		ini.Put_VQType(BASIC, "Intro", IntroMovie);
 		ini.Put_VQType(BASIC, "Brief", BriefMovie);
 		ini.Put_VQType(BASIC, "Win", WinMovie);

@@ -85,6 +85,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "display.h"
 
 #include "_alpha.h"
@@ -1064,7 +1066,7 @@ bool DisplayClass::Shadow_Map_Cell(Cell const & cell, HouseClass * house)
 bool DisplayClass::Uncover_Cell(Cell const & cell, HouseClass * house, bool shroud, bool fog)
 {
 	CellClass * cellptr = &(*this)[cell];
-	bool const view = (house == PlayerPtr);
+	bool const view = (house == Campaign_Player());
 
 	bool wasfogged = !cellptr->IsFogMapped[house];
 	bool changed = (shroud && !cellptr->IsMapped[house]) || (fog && !cellptr->IsFogMapped[house]);
@@ -2329,7 +2331,7 @@ void Bandbox_Selection_Callback(ObjectClass *object)
 	HouseClass *house = object->Owner_HouseClass();
 	BuildingClass *bptr = object->RTTI == RTTI_BUILDING ? (BuildingClass *)object : NULL;
 
-	if (house != NULL && house->Is_Player_Control()) {
+	if (Is_Local_Force(house)) {
 		if (object->Class_Of()->IsSelectable) {
 			bool selectable = false;
 			if (bptr != NULL) {
@@ -2882,7 +2884,7 @@ void DisplayClass::Fog_Cell(Cell const & cell, HouseClass * house)
 	if (!In_Radar(cell)) return;
 
 	CellClass * cellptr = &(*this)[cell];
-	bool const view = (house == PlayerPtr);
+	bool const view = (house == Campaign_Player());
 	bool wasuncovered = cellptr->IsFogMapped[house] || cellptr->IsFogVisible[house];
 
 	cellptr->IsFogMapped.Clear(house);
@@ -2948,7 +2950,7 @@ void DisplayClass::Shroud_Cell(Cell const & cell, HouseClass * house)
 
 	CellClass * cellptr = &(*this)[cell];
 	if (cellptr->IsMapped[house]) {
-		bool const view = (house == PlayerPtr);
+		bool const view = (house == Campaign_Player());
 
 		cellptr->IsMapped.Clear(house);
 		cellptr->IsVisible.Clear(house);
@@ -3493,11 +3495,11 @@ void DisplayClass::All_To_Look(bool units_only, bool is_fog, HouseClass const * 
 			if (Session.Type != GAME_NORMAL) {
 				tech->Look(false, is_fog);
 			} else if (tech->House->Is_Player_Control()) {
-				if (tech->DiscoveredBy[PlayerPtr]) {
+				if (tech->DiscoveredBy[Campaign_Player()]) {
 					tech->Look(false, is_fog);
 				}
 			} else {
-				if (tech->RTTI == RTTI_BUILDING && Rule->IsAllyReveal && tech->House->Is_Ally(PlayerPtr)) {
+				if (tech->RTTI == RTTI_BUILDING && Rule->IsAllyReveal && tech->House->Is_Ally(Campaign_Player())) {
 					tech->Look(is_fog, false);
 				}
 			}
@@ -3618,7 +3620,7 @@ char const * DisplayClass::Help_Text(int id)
 	/*
 	**	Give a generic help message when over shadow terrain.
 	*/
-	if (!Map[coord].IsMapped[PlayerPtr] && MainWindow) {
+	if (!Map[coord].IsMapped[Campaign_Player()] && MainWindow) {
 		return(Fetch_String(TXT_SHADOW));
 	}
 

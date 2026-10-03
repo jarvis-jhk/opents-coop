@@ -42,6 +42,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "taction.h"
 
 #include "_keyboar.h"
@@ -883,7 +885,7 @@ bool TActionClass::TAction_WAKEUP_GROUP(HouseClass * , ObjectClass * , TriggerCl
 /// </summary>
 bool TActionClass::TAction_ANNOUNCE_WIN(HouseClass * , ObjectClass * , TriggerClass * , Cell const & )
 {
-	PlayerPtr->Flag_To_Win(true);
+	Campaign_Player()->Flag_To_Win(true);
 	return(true);
 }
 
@@ -893,7 +895,7 @@ bool TActionClass::TAction_ANNOUNCE_WIN(HouseClass * , ObjectClass * , TriggerCl
 /// </summary>
 bool TActionClass::TAction_ANNOUNCE_LOSE(HouseClass * , ObjectClass * , TriggerClass * , Cell const & )
 {
-	PlayerPtr->Flag_To_Lose(true);
+	Campaign_Player()->Flag_To_Lose(true);
 	return(true);
 }
 
@@ -903,7 +905,7 @@ bool TActionClass::TAction_ANNOUNCE_LOSE(HouseClass * , ObjectClass * , TriggerC
 /// </summary>
 bool TActionClass::TAction_FORCE_END(HouseClass * , ObjectClass * , TriggerClass * , Cell const & )
 {
-	PlayerPtr->Flag_To_End();
+	Campaign_Player()->Flag_To_End();
 	return(true);
 }
 
@@ -1588,10 +1590,10 @@ bool TActionClass::TAction_DZ(HouseClass * , ObjectClass * , TriggerClass * , Ce
 /// </summary>
 bool TActionClass::TAction_WIN(HouseClass * , ObjectClass * , TriggerClass * , Cell const & )
 {
-	if (House_Matches(PlayerPtr, Data.House)) {
-		PlayerPtr->Flag_To_Win();
+	if (Players_Match(Data.House)) {
+		Campaign_Player()->Flag_To_Win();
 	} else {
-		PlayerPtr->Flag_To_Lose();
+		Campaign_Player()->Flag_To_Lose();
 	}
 	return(true);
 }
@@ -1604,10 +1606,10 @@ bool TActionClass::TAction_WIN(HouseClass * , ObjectClass * , TriggerClass * , C
 /// </summary>
 bool TActionClass::TAction_LOSE(HouseClass * , ObjectClass * , TriggerClass * , Cell const & )
 {
-	if (!House_Matches(PlayerPtr, Data.House)) {
-		PlayerPtr->Flag_To_Win();
+	if (!Players_Match(Data.House)) {
+		Campaign_Player()->Flag_To_Win();
 	} else {
-		PlayerPtr->Flag_To_Lose();
+		Campaign_Player()->Flag_To_Lose();
 	}
 	return(true);
 }

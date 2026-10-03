@@ -104,6 +104,8 @@
 
 #include "always.h"
 
+#include "campaignforces.h"
+
 #include "building.h"
 
 #include "_convert.h"
@@ -3297,7 +3299,7 @@ int BuildingClass::Exit_Object(TechnoClass * base)
  *=============================================================================================*/
 void BuildingClass::Update_Buildables(void)
 {
-	if (House == PlayerPtr && !IsInLimbo && DiscoveredBy[PlayerPtr] && IsOn) {
+	if (House == PlayerPtr && !IsInLimbo && DiscoveredBy[Campaign_Player()] && IsOn) {
 
 		// This must match the test the sidebar sweep removes cameos by, or the two would add and
 		// remove a cameo in turn. Can_Build's -1 means a type at its build limit, which stays.
@@ -10092,7 +10094,7 @@ bool BuildingClass::Is_Radar_Visible(DetectedType & detected) const
 			return(true);
 		}
 		if (House->Is_Player_Control()) {
-			return(DiscoveredBy[PlayerPtr]);
+			return(DiscoveredBy[Campaign_Player()]);
 		}
 
 		int height = Class->Height() * CELL_LEPTON_H - CELL_LEPTON;

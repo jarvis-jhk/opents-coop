@@ -23,7 +23,10 @@ function(opents_add_test target)
 
     add_executable(${target} ${sources})
     target_compile_features(${target} PRIVATE cxx_std_20)
-    set_target_properties(${target} PROPERTIES FOLDER "Tests")
+    set_target_properties(${target} PROPERTIES
+        FOLDER "Tests"
+        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+    )
 
     target_include_directories(${target} PRIVATE
         "${CMAKE_SOURCE_DIR}/code"
@@ -78,6 +81,7 @@ add_subdirectory(socketudp)
 add_subdirectory(sosparity)
 add_subdirectory(spawner)
 add_subdirectory(spawnhouse)
+add_subdirectory(forcecontrol)
 add_subdirectory(syncrec)
 add_subdirectory(unvqdelta)
 add_subdirectory(colorops)
