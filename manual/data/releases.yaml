@@ -3,4 +3,7 @@ releases:
     status: released
     date: '2026-08-27'
   - version: 0.2.0
+    status: released
+    date: '2026-10-03'
+  - version: 0.3.0
     status: development
