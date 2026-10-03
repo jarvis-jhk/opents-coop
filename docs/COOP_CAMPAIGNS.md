@@ -60,3 +60,7 @@ Start every machine before choosing the version. Set the matrix and accept it; t
 Shared campaigns disable saves, autosaves, shared resume, and waypoint edits. They refuse missions requesting dropship loadout selection. The stock campaign includes such missions, so this remains a partial campaign implementation. Full campaign completion and real LAN play require separate testing; consult [validation evidence](COOP_VALIDATION.md) for the earlier shared-house baseline.
 
 The engine writes crash reports locally. `tools/co-op/watch-crashes.py` can watch a user directory and forward faults to a privately configured endpoint; keep endpoint credentials outside this public repository. Installing the engine alone does not enable remote reporting.
+
+## Send feedback
+
+Post bug reports and requests for this fork to <https://ntfy.sh/opents-coop-feedback-496c07>, through its web page, the ntfy app, or `curl -d "your message" https://ntfy.sh/opents-coop-feedback-496c07`. Anyone can read the channel, so leave out personal data. Name the release, the mission version, the number of players, and what happened. Accepted reports are fixed on the fork's `main` and shipped in a later fork release.

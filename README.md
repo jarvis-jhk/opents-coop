@@ -43,6 +43,8 @@ This fork adds selectable campaign mission variants and a player-by-force contro
 
 Download matching builds for every machine from the [fork releases](https://github.com/jarvis-jhk/opents-coop/releases). Original game data is required. Shared campaigns currently disable saves and waypoint editing and refuse dropship loadout missions.
 
+Send bug reports and requests for this fork to the public feedback channel <https://ntfy.sh/opents-coop-feedback-496c07>, through its web page, the ntfy app, or `curl -d "your message" https://ntfy.sh/opents-coop-feedback-496c07`. Anyone can read the channel, so leave out personal data. Report fork problems there rather than in the upstream issue tracker.
+
 ## Community
 
 - Discord: <https://opents.net/discord>
