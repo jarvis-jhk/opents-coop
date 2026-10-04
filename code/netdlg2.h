@@ -16,6 +16,8 @@
 #include "ui/screens/netlobby/uinetlobby.h"
 #include "win.h"
 
+#include <string>
+
 struct GlobalPacketType;
 class IPXAddressClass;
 
@@ -47,6 +49,10 @@ void Net2Send_Chat(char const * text);
 void Net2Set_Handle(char const * name);
 void Net2Kick(char const * name);
 void Net2Pick_Map(void);
+void Net2Pick_Campaign(void);
+bool Net2Campaign_Names(std::string & campaign, std::string & mission, std::string & difficulty);
+bool Net2_Campaign_Launch_Pending(void);
+bool Net2_Campaign_Spawn_INI(std::string & text, std::string & fault);
 void Net2Join_Game(void);
 void Net2Host_Game(void);
 bool Net2Can_Start(void);

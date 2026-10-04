@@ -109,6 +109,8 @@ void UINetLobbyPresenterClass::Execute(UIIntent const & intent)
 		Move(UI_NET_CREDITS, intent.Value);
 	} else if (intent.Name == "map") {
 		Service.Pick_Map();
+	} else if (intent.Name == "campaign") {
+		Service.Pick_Campaign();
 	} else if (intent.Name == "new") {
 		Service.Host();
 	} else if (intent.Name == "join") {
@@ -361,6 +363,10 @@ class UINetSetupViewClass : public UINetLobbyViewClass
 			Model.DirtyVariable("side");
 			Model.DirtyVariable("color");
 			Model.DirtyVariable("mapname");
+			Model.DirtyVariable("campaign");
+			Model.DirtyVariable("campaignname");
+			Model.DirtyVariable("campaignmission");
+			Model.DirtyVariable("campaigndifficulty");
 			Model.DirtyVariable("bases");
 			Model.DirtyVariable("crates");
 			Model.DirtyVariable("shortgame");
@@ -393,6 +399,10 @@ class UINetSetupViewClass : public UINetLobbyViewClass
 				&& model.Bind("colors", &state.Colors)
 				&& model.Bind("color", &state.Color)
 				&& model.Bind("mapname", &state.MapName)
+				&& model.Bind("campaign", &state.Campaign)
+				&& model.Bind("campaignname", &state.CampaignName)
+				&& model.Bind("campaignmission", &state.CampaignMission)
+				&& model.Bind("campaigndifficulty", &state.CampaignDifficulty)
 				&& model.Bind("bases", &state.Bases)
 				&& model.Bind("crates", &state.Crates)
 				&& model.Bind("shortgame", &state.ShortGame)

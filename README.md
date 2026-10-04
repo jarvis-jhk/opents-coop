@@ -39,7 +39,7 @@ endorsed by Electronic Arts.
 
 ## Co-op campaign fork
 
-This fork adds selectable campaign mission variants and a player-by-force control matrix. Several players can share a force, and one player can control several forces. See [Create and play co-op campaign variants](docs/COOP_CAMPAIGNS.md) for map editing, single-player testing, and network setup.
+This fork adds selectable campaign mission variants and a player-by-force control matrix. Several players can share a force, and one player can control several forces. See [Create and play co-op campaign variants](docs/COOP_CAMPAIGNS.md) for map editing, single-player testing, and network setup, including starting a shared campaign from the network lobby.
 
 Download matching builds for every machine from the [fork releases](https://github.com/jarvis-jhk/opents-coop/releases). Original game data is required. Shared campaigns currently disable saves and waypoint editing and refuse dropship loadout missions.
 

@@ -152,3 +152,8 @@ site_exclusions:
     keys: [Name]
     classification: excluded
     reason: This read labels the campaign dialog's mission list with the existing Basic.Name; ScenarioClass.Read_INI owns the mission description.
+  - path: code/netdlg2.cpp
+    function: Net2Campaign_Describe
+    keys: [Name]
+    classification: excluded
+    reason: This read shows the existing Basic.Name of the lobby's chosen campaign mission; ScenarioClass.Read_INI owns the mission description.

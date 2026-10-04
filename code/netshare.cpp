@@ -852,12 +852,12 @@ void Receive_Random_Map_Preview(void)
 /// on the hard drive, the player is asked for the disk that holds it, and the selection
 /// fails if that disk cannot be made available.
 /// </summary>
-/// <param name="index">Index into the multiplayer scenario list, or -1 to clear the
-/// selection.</param>
+/// <param name="index">Index into the multiplayer scenario list. -1, or any index the list
+/// does not hold, clears the selection.</param>
 /// <returns>bool; Was the scenario information set?</returns>
 bool Set_Scenario_Info_From_Index(int index)
 {
-	if (index == -1) {
+	if (index < 0 || index >= Session.Scenarios.Count()) {
 		Session.ScenarioFileName[0] = '\0';
 		Session.ScenarioDigest[0] = '\0';
 		Session.ScenarioFileLength = 0;

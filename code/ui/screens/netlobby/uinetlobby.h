@@ -112,6 +112,12 @@ struct UINetLobbyState
 	std::string MapName;
 	UIMapPreviewImage Preview;
 
+	// A lobby that starts a campaign mission names it here instead of playing a map.
+	bool Campaign = false;
+	std::string CampaignName;
+	std::string CampaignMission;
+	std::string CampaignDifficulty;
+
 	bool Bases = true;
 	bool Crates = true;
 	bool ShortGame = false;
@@ -156,6 +162,7 @@ class UINetLobbyServiceClass
 		virtual void Kick(std::vector<std::string> const & names) = 0;
 		virtual void Accept(void) = 0;
 		virtual void Pick_Map(void) = 0;
+		virtual void Pick_Campaign(void) = 0;
 
 		virtual void Join(void) = 0;
 		virtual void Host(void) = 0;

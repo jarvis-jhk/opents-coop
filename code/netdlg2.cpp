@@ -20,15 +20,20 @@
 #include "_rules.h"
 #include "_timer.h"
 #include "addon.h"
+#include "campaign.h"
+#include "ccfile.h"
+#include "ccini.h"
 #include "conquer.h"
 #include "data.h"
 #include "dbgprint.h"
+#include "gamedlg.h"
 #include "globals.h"
 #include "goptions.h"
 #include "houstype.h"
 #include "init.h"
 #include "ipxmgr.h"
 #include "language/language.h"
+#include "lobbycampaign.h"
 #include "mapgen.h"
 #include "mplayer.h"
 #include "msgbox.h"
@@ -40,8 +45,10 @@
 #include "scenario.h"
 #include "sdl/sdlwindow.h"
 #include "sendfile.h"
+#include "stats.h"
 #include "stimer.h"
 #include "timer.h"
+#include "ui/screens/campaign/uicampaign.h"
 #include "ui/screens/msgbox/uimsgbox.h"
 #include "ui/screens/netlobby/uinetlobby.h"
 #include "utf8.h"
@@ -49,6 +56,10 @@
 #include "wsproto.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <cstring>
+#include <optional>
+#include <string>
 
 
 /*
@@ -58,6 +69,9 @@ static int Request_To_Join(int join_index);
 static void Unjoin_Game(int game_index);
 static void Send_Join_Queries(int gamenow, int playernow, int chatnow, int init = 0);
 static void Get_Join_Responses(void);
+static void Net2Campaign_Send(void);
+static void Net2Campaign_Clear_Accepts(void);
+static void Net2Campaign_Receive(GlobalPacketType const & packet);
 
 bool Net2ReadyToGo(int load_game);
 void Net2ServiceGameList(void);
@@ -74,6 +88,26 @@ Net2LobbyPhaseType Net2LobbyPhase = NET2_LOBBY_NONE;
 int RulesID;
 int ArtID;
 int AIID;
+
+// The campaign mission the lobby starts in place of a multiplayer map; Campaign -1 means none.
+struct Net2LobbyCampaignType
+{
+	int Campaign = -1;
+	int Difficulty = 1;
+	int Stage = -1;
+	bool Firestorm = false;
+	char Scenario[64] = "";
+
+	// The campaign's description, the mission's name and the difficulty's, as this machine shows them.
+	std::string Label;
+	std::string Mission;
+	std::string DifficultyName;
+};
+
+static Net2LobbyCampaignType Net2Campaign;
+
+// Set once the lobby has started a campaign, so the caller launches it rather than a match.
+static bool Net2CampaignLaunch = false;
 
 int Net2_g_Col_Accept;
 int Net2_g_Col_Name;
@@ -294,7 +328,227 @@ void Net2Pick_Map(void)
 		}
 		IsRandomMap = true;
 		Net2Refresh_Preview();
+
+		if (Net2Campaign.Campaign >= 0) {
+			Net2Campaign = Net2LobbyCampaignType();
+			Net2Campaign_Clear_Accepts();
+			Net2Campaign_Send();
+		}
 	}
+}
+
+
+/// <summary>
+/// Names the lobby's campaign choice in words from this machine's own campaign list and mission
+/// file, so a guest without the mission sees its file name.
+/// </summary>
+static void Net2Campaign_Describe(void)
+{
+	Net2Campaign.Label.clear();
+	Net2Campaign.Mission.clear();
+	Net2Campaign.DifficultyName.clear();
+	if (Net2Campaign.Campaign < 0) {
+		return;
+	}
+
+	if (Campaigns.Count() == 0) {
+		Init_Campaigns();
+	}
+
+	std::string campaign = "Campaign";
+	if (Net2Campaign.Campaign < Campaigns.Count() && Campaigns[Net2Campaign.Campaign] != NULL) {
+		campaign = Campaigns[Net2Campaign.Campaign]->Description;
+	}
+
+	char title[128] = "";
+	CCFileClass map(Net2Campaign.Scenario);
+	CCINIClass ini;
+	if (map.Is_Available() && ini.Load(map, false) != 0) {
+		ini.Get_String("Basic", "Name", "", title, sizeof(title));
+	}
+
+	int const difficulty = std::clamp(Net2Campaign.Difficulty, 0, OptionsClass::MAX_DIFFICULTY_SETTING - 1);
+	Net2Campaign.Label = campaign;
+	Net2Campaign.Mission = title[0] != '\0' ? title : Net2Campaign.Scenario;
+	Net2Campaign.DifficultyName = Fetch_String(GameDifficultyNames[difficulty]);
+}
+
+
+/// <summary>
+/// Sends the lobby's campaign choice, or that there is none, to every guest.
+/// </summary>
+static void Net2Campaign_Send(void)
+{
+	GlobalPacketType packet;
+	memset(&packet, 0, sizeof(packet));
+	packet.Command = NET_LOBBY_CAMPAIGN;
+	strcpy(packet.Name, Session.Handle);
+	packet.LobbyCampaign.Campaign = (short)Net2Campaign.Campaign;
+	packet.LobbyCampaign.Difficulty = (unsigned char)Net2Campaign.Difficulty;
+	packet.LobbyCampaign.Firestorm = Net2Campaign.Firestorm ? 1 : 0;
+	packet.LobbyCampaign.Stage = Net2Campaign.Stage;
+	std::snprintf(packet.LobbyCampaign.Scenario, sizeof(packet.LobbyCampaign.Scenario), "%s", Net2Campaign.Scenario);
+
+	for (int i = 1; i < Session.Players.Count(); i++) {
+		Ipx.Send_Global_Message(&packet, sizeof(packet), 1, &Session.Players[i]->Address);
+		Call_Back();
+	}
+}
+
+
+/// <summary>
+/// Clears every guest's acceptance after the host changed what the lobby starts.
+/// </summary>
+static void Net2Campaign_Clear_Accepts(void)
+{
+	for (int i = 1; i < Session.Players.Count(); i++) {
+		Session.Players[i]->Player.Status = 0;
+	}
+}
+
+
+/// <summary>
+/// Takes over the campaign choice the host sent. A changed choice clears this machine's
+/// acceptance, as a changed map does.
+/// </summary>
+static void Net2Campaign_Receive(GlobalPacketType const & packet)
+{
+	char scenario[sizeof(packet.LobbyCampaign.Scenario)];
+	std::snprintf(scenario, sizeof(scenario), "%.*s", (int)sizeof(scenario) - 1, packet.LobbyCampaign.Scenario);
+
+	int const campaign = packet.LobbyCampaign.Campaign < 0 ? -1 : packet.LobbyCampaign.Campaign;
+	bool const changed = campaign != Net2Campaign.Campaign
+		|| (campaign >= 0 && (packet.LobbyCampaign.Difficulty != Net2Campaign.Difficulty
+			|| packet.LobbyCampaign.Stage != Net2Campaign.Stage
+			|| (packet.LobbyCampaign.Firestorm != 0) != Net2Campaign.Firestorm
+			|| stricmp(scenario, Net2Campaign.Scenario) != 0));
+	if (!changed) {
+		return;
+	}
+
+	Net2Campaign.Campaign = campaign;
+	Net2Campaign.Difficulty = packet.LobbyCampaign.Difficulty;
+	Net2Campaign.Stage = packet.LobbyCampaign.Stage;
+	Net2Campaign.Firestorm = packet.LobbyCampaign.Firestorm != 0;
+	std::snprintf(Net2Campaign.Scenario, sizeof(Net2Campaign.Scenario), "%s", scenario);
+	Net2Campaign_Describe();
+
+	if (Session.Players.Count() > 0) {
+		Session.Players[0]->Player.Status = 0;
+	}
+	DebugString("Lobby campaign from the host: campaign %d, %s, stage %d\n", Net2Campaign.Campaign, Net2Campaign.Scenario, Net2Campaign.Stage);
+}
+
+
+/// <summary>
+/// Lets the host choose a campaign mission for the lobby in place of a multiplayer map.
+/// </summary>
+void Net2Pick_Campaign(void)
+{
+	if (Campaigns.Count() == 0) {
+		Init_Campaigns();
+	}
+
+	std::optional<UICampaignEntry> picked = UI_Campaign_Dialog();
+	if (!picked.has_value() || picked->Missions.empty()) {
+		return;
+	}
+
+	int const index = std::clamp(picked->Mission, 0, (int)picked->Missions.size() - 1);
+	UICampaignMission const & mission = picked->Missions[index];
+
+	Net2Campaign.Campaign = picked->Campaign;
+	Net2Campaign.Difficulty = Options.Difficulty;
+	Net2Campaign.Stage = mission.Stage;
+	Net2Campaign.Firestorm = Addon_Enabled(ADDON_FIRESTORM);
+	std::snprintf(Net2Campaign.Scenario, sizeof(Net2Campaign.Scenario), "%s", mission.File.c_str());
+	Net2Campaign_Describe();
+
+	Net2Campaign_Clear_Accepts();
+	Net2Campaign_Send();
+	DebugString("Lobby campaign chosen: campaign %d, %s, stage %d\n", Net2Campaign.Campaign, Net2Campaign.Scenario, Net2Campaign.Stage);
+}
+
+
+/// <summary>
+/// Names the lobby's campaign choice: the campaign, the mission and the difficulty.
+/// </summary>
+/// <returns>bool; Does the lobby start a campaign? False when it plays a multiplayer map.</returns>
+bool Net2Campaign_Names(std::string & campaign, std::string & mission, std::string & difficulty)
+{
+	campaign = Net2Campaign.Label;
+	mission = Net2Campaign.Mission;
+	difficulty = Net2Campaign.DifficultyName;
+	return(Net2Campaign.Campaign >= 0);
+}
+
+
+/// <summary>
+/// Did the lobby just start a campaign? The caller then launches it instead of a match.
+/// </summary>
+bool Net2_Campaign_Launch_Pending(void)
+{
+	return(Net2CampaignLaunch);
+}
+
+
+/// <summary>
+/// Describes the lobby's campaign, its players and their addresses for the launch file.
+/// </summary>
+static LobbyCampaign::Launch Net2Campaign_Launch(void)
+{
+	LobbyCampaign::Launch launch;
+	launch.Campaign = Net2Campaign.Campaign;
+	launch.Difficulty = Net2Campaign.Difficulty;
+	launch.Stage = Net2Campaign.Stage;
+	launch.Firestorm = Net2Campaign.Firestorm;
+	launch.Scenario = Net2Campaign.Scenario;
+	launch.Seed = Seed;
+	launch.GameSpeed = Session.Options.GameSpeed;
+	launch.ListenPort = WestwoodOnline_PortNumber;
+
+	// Ten minutes, so a guest still waits while the host picks the next mission or version.
+	launch.ConnTimeout = 36000;
+
+	launch.Host = Session.GameName;
+	launch.Local = Session.Handle;
+
+	for (int i = 0; i < Session.Players.Count(); i++) {
+		NodeNameType const * who = Session.Players[i];
+		LobbyCampaign::Seat seat;
+		seat.Name = who->Name;
+		seat.IP = who->Address.Get_IP();
+		// The address holds the port in network order, most significant byte first.
+		uint16_t const port = who->Address.Get_Port();
+		unsigned char bytes[2];
+		std::memcpy(bytes, &port, sizeof(bytes));
+		seat.Port = (bytes[0] << 8) | bytes[1];
+		if (seat.Port == 0) {
+			seat.Port = WestwoodOnline_PortNumber;
+		}
+		launch.Seats.push_back(seat);
+	}
+	return(launch);
+}
+
+
+/// <summary>
+/// Writes the launch file text for the campaign the lobby started.
+/// </summary>
+/// <param name="text">Receives the launch file.</param>
+/// <param name="fault">Receives why it cannot be written.</param>
+/// <returns>bool; Was the launch file written?</returns>
+bool Net2_Campaign_Spawn_INI(std::string & text, std::string & fault)
+{
+	Net2CampaignLaunch = false;
+
+	LobbyCampaign::Launch const launch = Net2Campaign_Launch();
+	if (!LobbyCampaign::Is_Launchable(launch, fault)) {
+		DebugString("Lobby campaign cannot start: %s\n", fault.c_str());
+		return(false);
+	}
+	text = LobbyCampaign::Spawn_INI(launch);
+	return(!text.empty());
 }
 
 
@@ -379,6 +633,19 @@ bool Net2Can_Start(void)
 		}
 	}
 
+	if (Net2Campaign.Campaign >= 0) {
+		std::string fault;
+		if (ok && !LobbyCampaign::Is_Launchable(Net2Campaign_Launch(), fault)) {
+			PMessagePrintf(-1, "%s", fault.c_str());
+			ok = false;
+		}
+		if (ok && !CCFileClass(Net2Campaign.Scenario).Is_Available()) {
+			PMessagePrintf(-1, "The mission file %s is missing.", Net2Campaign.Scenario);
+			ok = false;
+		}
+		return(ok);
+	}
+
 	int waypoints = RandomMapWaypointCount(Session.Options.ScenarioIndex);
 	if (waypoints < Session.Players.Count()) {
 		PMessagePrintf(-1, Fetch_String(TXT_SCENARIO_TOO_SMALL));
@@ -409,6 +676,13 @@ bool Net2_Service_Lobby(void)
 		Get_Join_Responses();
 		if (Net2LobbyPhase == NET2_LOBBY_HOST) {
 			PumpGameopts(false);
+
+			// A guest who joined since the last send learns the campaign choice from the next one.
+			static CDTimerClass<SystemTimerClass> _campaign_resend;
+			if (Net2Campaign.Campaign >= 0 && _campaign_resend == 0) {
+				Net2Campaign_Send();
+				_campaign_resend = 2 * TIMER_SECOND;
+			}
 		}
 		Net2ServiceGameList();
 	}
@@ -449,6 +723,7 @@ static void Net2_Enter_Lobby(Net2LobbyPhaseType phase)
 
 		case NET2_LOBBY_HOST:
 			VerNum.Init_Clipping();
+			Net2Campaign = Net2LobbyCampaignType();
 
 			srand(NonCriticalRandomNumber(1, 0x7FFF));
 			Seed = rand();
@@ -465,6 +740,7 @@ static void Net2_Enter_Lobby(Net2LobbyPhaseType phase)
 			break;
 
 		case NET2_LOBBY_GUEST: {
+			Net2Campaign = Net2LobbyCampaignType();
 			int self = -1;
 			for (int index = 0; index < Session.Players.Count(); index++) {
 				if (strcmp(Session.Players[index]->Name, Session.Handle) == 0) {
@@ -864,6 +1140,7 @@ bool Net2Remote_Connect(void)
 	Session.GameName[0] = '\0';
 
 	Net2GameStarted = false;
+	Net2CampaignLaunch = false;
 
 	Net2_Show_Lobby(NET2_LOBBY_GAME_LIST);
 
@@ -945,6 +1222,11 @@ bool Net2Remote_Connect(void)
 			delete MultiplayerMapPreview;
 			MultiplayerMapPreview = NULL;
 
+			// The launch file sets up a campaign, so the match setup below does not apply.
+			if (Net2CampaignLaunch) {
+				break;
+			}
+
 			PregameSetup();
 
 			if (Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP) {
@@ -956,6 +1238,45 @@ bool Net2Remote_Connect(void)
 				Session.MaxAhead = std::max(((int)Ipx.Global_Response_Time() / 8), NETWORK_MIN_MAX_AHEAD);
 			}
 
+			break;
+		}
+
+		if (answer == UI_NET_GO && Net2Campaign.Campaign >= 0) {
+			Net2GameStarted = 1;
+			Net2CampaignLaunch = true;
+
+			if (MultiplayerMapPreview != NULL) {
+				delete MultiplayerMapPreview;
+				MultiplayerMapPreview = NULL;
+			}
+
+			// The guests take the final choice, then start the same launch file as the host.
+			Net2Campaign_Send();
+
+			// A guest refuses a start whose timing differs from the protocol's initial settings.
+			if (Session.CommProtocol == COMM_PROTOCOL_MULTI_E_COMP) {
+				Session.MaxAhead = NetTiming::Settings_For_Rung(NetTiming::INITIAL_TIMING_RUNG).MaxAhead;
+			}
+
+			GlobalPacketType gpacket;
+			memset(&gpacket, 0, sizeof(gpacket));
+			gpacket.Command = NET_GO;
+			gpacket.ResponseTime.OneWay = Session.MaxAhead;
+			for (int i = 1; i < Session.Players.Count(); i++) {
+				Ipx.Send_Global_Message(&gpacket, sizeof(gpacket), 1, &(Session.Players[i]->Address));
+			}
+
+			CDTimerClass<SystemTimerClass> timeout = TIMER_SECOND * 20;
+			while (Ipx.Global_Num_Send() > 0 && timeout) {
+				Ipx.Service();
+				Call_Back();
+			}
+
+			DebugString("Lobby campaign started for %d players\n", Session.Players.Count());
+			Hide_Mouse();
+			Draw_Menu_Background();
+			Show_Mouse();
+			Net2_Close_Lobby();
 			break;
 		}
 
@@ -1830,6 +2151,14 @@ static void Get_Join_Responses(void)
 			continue;
 		}
 
+		if (Session.GPacket.Command == NET_LOBBY_CAMPAIGN) {
+			if (Net2LobbyPhase == NET2_LOBBY_GUEST && !Net2GameStarted && Session.GameName[0] != '\0'
+				&& strncmp(Session.GPacket.Name, Session.GameName, sizeof(Session.GPacket.Name)) == 0) {
+				Net2Campaign_Receive(Session.GPacket);
+			}
+			continue;
+		}
+
 		if (Session.GPacket.Command==NET_PUB_GAMEOPT) {
 			for (i = 0; i < Session.Players.Count(); i++) {
 				if (!strcmp(Session.Players[i]->Name,Session.GPacket.Name)) {
@@ -2033,7 +2362,12 @@ static void Get_Join_Responses(void)
 				Session.HostAddress = Session.GAddress;
 				Session.NumPlayers = Session.Players.Count();
 				_netresponse = UI_NET_STARTED;
-				if (Session.GPacket.Command==NET_GO) {
+				if (Session.GPacket.Command == NET_GO && Net2Campaign.Campaign >= 0) {
+					DebugString("Lobby campaign started by the host\n");
+					JoinState = JOIN_GAME_START;
+					Net2CampaignLaunch = true;
+					Net2GameStarted = true;
+				} else if (Session.GPacket.Command==NET_GO) {
 					JoinState = JOIN_GAME_START;
 					if (!Net2ReadyToGo(0)) {
 						_netresponse = UI_NET_CANCEL;

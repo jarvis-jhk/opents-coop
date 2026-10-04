@@ -1115,6 +1115,22 @@ restart:
 							if (Net2Init_Network() && Net2Remote_Connect()) {
 								process = false;
 								Theme.Stop(true);
+
+								// A campaign the lobby started runs from the launch file every machine writes alike.
+								if (Net2_Campaign_Launch_Pending()) {
+									std::string text;
+									std::string fault;
+									if (!Net2_Campaign_Spawn_INI(text, fault)) {
+										WWMessageBox().Process(fault.c_str(), TXT_OK);
+										text.clear();
+									}
+									if (text.empty() || !Spawner_Launch_From_Lobby(text, gameloaded)) {
+										process = true;
+										Session.Type = GAME_NORMAL;
+										selection = SEL_NONE;
+										Ipx.Shutdown();
+									}
+								}
 							} else {
 								// user hit cancel, or init failed
 								Session.Type = GAME_NORMAL;

@@ -15,6 +15,7 @@
 #include <string>
 
 #include "ini.h"
+#include "lobbycampaign.h"
 #include "spawnerconfig.h"
 #include "xstraw.h"
 
@@ -1146,6 +1147,84 @@ int main(void)
 
 		Check(!Judge(_Skirmish, sizeof(_Skirmish) - 1, 0, 8, fault),
 			"a match is refused rather than read against countries the rules never declared");
+	}
+
+	/*
+	 * A campaign started from the local network lobby writes one launch file per machine. The
+	 * files describe one match: the same identity, the host in the master's first seat, and
+	 * each machine seated as itself.
+	 */
+	{
+		LobbyCampaign::Launch launch;
+		launch.Campaign = 1;
+		launch.Difficulty = 0;
+		launch.Stage = 4;
+		launch.Firestorm = true;
+		launch.Scenario = "GDI5A.MAP";
+		launch.Seed = 4711;
+		launch.GameSpeed = 2;
+		launch.ListenPort = 1234;
+		launch.ConnTimeout = 36000;
+		launch.Host = "Zed";
+		launch.Seats = {
+			{ "bob", 0x0201A8C0u, 1234 },
+			{ "Zed", 0x0101A8C0u, 1234 },
+			{ "Alice", 0x0301A8C0u, 1234 },
+		};
+
+		std::string fault;
+		int identity[3] = {};
+		bool seated = true;
+		for (int machine = 0; machine < 3; machine++) {
+			launch.Local = launch.Seats[machine].Name;
+			std::string const text = LobbyCampaign::Spawn_INI(launch);
+			SpawnerConfigClass config = Read(text.c_str(), (int)text.size());
+			identity[machine] = config.Session_Identity_CRC();
+			seated = seated && config.Slots[config.LocalSlot].Name == launch.Local
+				&& config.Is_Shared_House() && config.HumanCount == 3
+				&& config.Slots[0].Name == "Zed" && config.Slots[1].Name == "Alice" && config.Slots[2].Name == "bob"
+				&& config.IsHost == (launch.Local == "Zed")
+				&& config.CampaignID == 1 && config.ScenarioName == "GDI5A.MAP" && config.CampaignStage == 4
+				&& config.CampaignDifficulty == 0 && config.CampaignCDifficulty == 2
+				&& config.Seed == 4711 && config.GameSpeed == 2 && config.Firestorm
+				&& config.ListenPort == 1234 && config.ConnTimeout == 36000
+				&& config.Is_Playable(2, 8, fault);
+			if (machine == 1) {
+				seated = seated && config.Slots[1].Address == "192.168.1.3" && config.Slots[2].Address == "192.168.1.2"
+					&& config.Slots[1].Port == 1234;
+			}
+		}
+		Check(seated, "each lobby machine is seated as itself, the host first");
+		Check(identity[0] == identity[1] && identity[1] == identity[2], "every lobby machine's file names one match");
+
+		launch.Local = "Alice";
+		launch.Stage = -1;
+		std::string const first = LobbyCampaign::Spawn_INI(launch);
+		Check(first.find("CampaignStage") == std::string::npos, "a campaign's first mission leaves its stage to the map");
+
+		LobbyCampaign::Launch bad = launch;
+		bad.Seats.resize(1);
+		bad.Host = "Alice";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault) && LobbyCampaign::Spawn_INI(bad).empty(),
+			"a lobby campaign alone is refused");
+
+		bad = launch;
+		bad.Seats[0].IP = 0;
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a player without an address is refused");
+
+		bad = launch;
+		bad.Seats[0].Name = "ALICE";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "two names differing only in case are refused");
+
+		bad = launch;
+		bad.Host = "Nobody";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a host outside the roster is refused");
+
+		bad = launch;
+		bad.Campaign = -1;
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a lobby without a chosen campaign is refused");
+
+		Check(LobbyCampaign::Seat_Name("a;b[c]") == "a_b_c_", "a name keeps no character the file cannot hold");
 	}
 
 	std::printf("\n%s\n", Failures == 0 ? "PASSED" : "FAILED");

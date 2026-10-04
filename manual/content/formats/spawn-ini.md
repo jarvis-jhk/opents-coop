@@ -97,6 +97,14 @@ After a win, the host selects the next mission from the map-selection screen or 
 
 Shared campaigns disable saving, autosaving and waypoint editing. Hotkey groups remain local to each player and do not change the mission’s script groups. A mission requesting dropship loadout selection is refused because that choice is not synchronized. Leaving ends that player's participation; surrender loses the mission for the shared house.
 
+## A shared campaign from the network lobby
+
+The network lobby can start a shared-house campaign without a hand-written launch file. The host clicks **Campaign** in the game setup and chooses a campaign, a starting mission and a difficulty in the campaign dialog. The lobby then shows that mission instead of a multiplayer map and hides the match options; the game speed still applies. Choosing a multiplayer map again returns the lobby to a match. Each change clears the guests' acceptance.
+
+When every guest has accepted, the host's **Go!** makes each machine write its own `SPAWN.INI` into the user directory, replacing any file already there, and start the campaign from it as if launched with `-SPAWN`. The files share the campaign, mission, map-selection stage, difficulty pair, game speed, lobby seed and Firestorm setting, so they give one session identity. The host takes the first seat and chooses the mission version and control matrix; the other players follow in name order, ignoring case. Each seat gets color `0`, `1` and so on in that order, side `0`, the lobby's port and the address the lobby saw, and `ConnTimeout=36000`. The rest of the shared campaign, including the next-mission restart, follows [A shared-house campaign](#a-shared-house-campaign); the restarted process adds `-SPAWN` to its command line.
+
+A lobby campaign needs two to eight players with distinct names, ignoring case. The host's game refuses to start when the mission file is missing on the host. A machine that cannot write its launch file, or whose file is refused, returns to the main menu; the other machines then wait for it at most `ConnTimeout` ticks. The game closes when the campaign ends. Every machine needs the same fork build, because the lobby's campaign packet is new.
+
 ## The options every house plays under
 
 These `[Settings]` keys set the rules of a skirmish or a game against other machines. In a game against other machines, write them the same in every machine's file. `BuildOffAlly` is the one exception, as described below.

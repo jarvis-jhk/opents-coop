@@ -3344,6 +3344,10 @@ class RecordingNetServiceClass : public UINetLobbyServiceClass
 			state.Chat = Model.Chat;
 			state.Sides = Model.Sides;
 			state.Colors = Model.Colors;
+			state.Campaign = Model.Campaign;
+			state.CampaignName = Model.CampaignName;
+			state.CampaignMission = Model.CampaignMission;
+			state.CampaignDifficulty = Model.CampaignDifficulty;
 		}
 
 		virtual void Set_Handle(char const *) override {}
@@ -3358,6 +3362,16 @@ class RecordingNetServiceClass : public UINetLobbyServiceClass
 
 		int Picked = 0;
 		virtual void Pick_Map(void) override { Picked++; }
+
+		int CampaignPicks = 0;
+		virtual void Pick_Campaign(void) override
+		{
+			CampaignPicks++;
+			Model.Campaign = true;
+			Model.CampaignName = "GDI";
+			Model.CampaignMission = "Retake the Base";
+			Model.CampaignDifficulty = "Normal";
+		}
 
 		int Joins = 0;
 		int Hosts = 0;
@@ -3734,6 +3748,17 @@ void Test_Net_Browser_Screen(Rml::Context & context, CountingSystemInterfaceClas
 }
 
 
+bool Is_Shown(Rml::Element * element)
+{
+	for (Rml::Element * at = element; at != nullptr; at = at->GetParentNode()) {
+		if (at->GetComputedValues().display() == Rml::Style::Display::None) {
+			return(false);
+		}
+	}
+	return(element != nullptr);
+}
+
+
 void Test_Net_Setup_Screen(Rml::Context & context, CountingSystemInterfaceClass & system)
 {
 	int problems = system.Problems;
@@ -3773,6 +3798,30 @@ void Test_Net_Setup_Screen(Rml::Context & context, CountingSystemInterfaceClass 
 	Check(players != nullptr && players->GetBox().GetSize(Rml::BoxArea::Border) == Rml::Vector2f(226.0f, 110.0f), "the player list is its template's rect");
 
 	Check(rmlui_dynamic_cast<UIRmlSurfaceElementClass *>(document->GetElementById("preview")) != nullptr, "the setup holds a surface for the map's picture");
+
+	Rml::Element * switches = document->GetElementById("switches");
+	Rml::Element * info = document->GetElementById("campaigninfo");
+	Rml::Element * pickcampaign = document->GetElementById("pickcampaign");
+	Check(Is_Shown(switches) && !Is_Shown(info), "a lobby playing a map shows its switches and no campaign");
+	Check(Is_Shown(pickcampaign), "the host is offered a campaign");
+	if (pickcampaign != nullptr) {
+		Click(context, pickcampaign);
+		presenter.Drain();
+		presenter.Refresh();
+		view->Sync();
+		context.Update();
+		context.Render();
+	}
+	Check(service.CampaignPicks == 1, "a physical click on the campaign button asks for a campaign");
+	Check(presenter.State.Campaign && !Is_Shown(switches) && Is_Shown(info) && !Is_Shown(document->GetElementById("row-credits"))
+		&& Is_Shown(document->GetElementById("row-speed")), "a campaign lobby hides the match options and keeps the game speed");
+	Check(info != nullptr && info->GetInnerRML().find("Retake the Base") != Rml::String::npos, "the campaign lobby names the mission");
+	Check(system.Problems == problems, "the campaign lobby raises no RmlUi warning or error");
+	service.Model.Campaign = false;
+	presenter.Refresh();
+	view->Sync();
+	context.Update();
+	Check(Is_Shown(switches) && !Is_Shown(info), "choosing a map again brings the switches back");
 
 	Drive(presenter, "bases", 0);
 	Check(!presenter.State.Bases && !presenter.State.ShortGame, "clearing bases clears the short game with it");

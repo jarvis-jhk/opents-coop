@@ -31,6 +31,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <utility>
 
 
@@ -72,6 +73,7 @@ class UINetLobbyEngineServiceClass : public UINetLobbyServiceClass
 		virtual void Kick(std::vector<std::string> const & names) override;
 		virtual void Accept(void) override;
 		virtual void Pick_Map(void) override;
+		virtual void Pick_Campaign(void) override;
 		virtual void Join(void) override;
 		virtual void Host(void) override;
 		virtual bool Can_Start(void) override;
@@ -184,7 +186,8 @@ void UINetLobbyEngineServiceClass::Read(UINetLobbyState & state)
 	}
 	state.Color = (Session.ColorIdx >= 0 && Session.ColorIdx < (int)state.Colors.size()) ? Session.ColorIdx : 0;
 
-	state.MapName = Session.Options.ScenarioDescription;
+	state.Campaign = Net2Campaign_Names(state.CampaignName, state.CampaignMission, state.CampaignDifficulty);
+	state.MapName = state.Campaign ? state.CampaignMission : std::string(Session.Options.ScenarioDescription);
 	UI_Map_Preview_Image(state.Preview);
 
 	state.Bases = Session.Options.Bases;
@@ -327,6 +330,12 @@ void UINetLobbyEngineServiceClass::Accept(void)
 void UINetLobbyEngineServiceClass::Pick_Map(void)
 {
 	Net2Pick_Map();
+}
+
+
+void UINetLobbyEngineServiceClass::Pick_Campaign(void)
+{
+	Net2Pick_Campaign();
 }
 
 

@@ -61,6 +61,9 @@ static CCINIClass SpawnINI;
 // A shared house campaign starts the game again on its next mission once this one has ended.
 static bool RelaunchRequested = false;
 
+// A campaign the network lobby started was not launched with -SPAWN, so its relaunch adds it.
+static bool LaunchedFromLobby = false;
+
 extern HANDLE AppMutex;
 
 
@@ -604,6 +607,9 @@ static void Spawner_Relaunch(void)
 	}
 
 	std::string command = GetCommandLineA();
+	if (LaunchedFromLobby) {
+		command += " -SPAWN";
+	}
 	STARTUPINFOA startup = {};
 	startup.cb = sizeof(startup);
 	PROCESS_INFORMATION process = {};
@@ -615,6 +621,42 @@ static void Spawner_Relaunch(void)
 	CloseHandle(process.hThread);
 	CloseHandle(process.hProcess);
 	DebugString("[Spawner] Started the game again for the next mission.\n");
+}
+
+
+/// <summary>
+/// Starts the shared campaign the network lobby agreed on: writes its launch file and prepares
+/// the game from it as a client launch would. A refusal returns the game to the menu.
+/// </summary>
+/// <param name="text">The launch file the lobby wrote for this machine.</param>
+/// <param name="gameloaded">Set when the launch resumed a saved game.</param>
+/// <returns>bool; Is the campaign ready to start?</returns>
+bool Spawner_Launch_From_Lobby(std::string const & text, bool & gameloaded)
+{
+	Ipx.Shutdown();
+
+	CCFileClass file("SPAWN.INI");
+	bool const written = file.Open(FileClass::WRITE) && file.Write(text.data(), (int)text.size()) == (int)text.size();
+	file.Close();
+	if (!written) {
+		return(Spawner_Refuse("SPAWN.INI could not be written, so the campaign cannot start."));
+	}
+
+	SpawnRequested = true;
+	LaunchedFromLobby = true;
+	if (Spawner_Prepare(gameloaded)) {
+		return(true);
+	}
+
+	Ipx.Shutdown();
+	SpawnRequested = false;
+	SpawnConsumed = false;
+	LaunchedFromLobby = false;
+	Session.IsSharedHouse = false;
+	Session.Type = GAME_NORMAL;
+	Clear_Vector(&Session.Players);
+	Clear_Vector(&Session.Computers);
+	return(false);
 }
 
 

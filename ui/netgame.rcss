@@ -248,6 +248,19 @@
 	decorator: image(wodkick.pcx scale-none left top);
 }
 
+#pickcampaign { left: 299dp; top: 357dp; width: 122dp; }
+
+#campaigninfo { left: 450dp; top: 41dp; width: 163dp; height: 160dp; }
+
+#campaigninfo .line
+{
+	display: block;
+	margin: 0 0 6dp 0;
+	line-height: 15dp;
+}
+
+#campaigninfo .note { color: #848a84; }
+
 #cancel { left: 436dp; top: 357dp; width: 80dp; }
 #go { left: 531dp; top: 357dp; width: 82dp; }
 

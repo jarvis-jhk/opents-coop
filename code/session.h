@@ -171,6 +171,7 @@ enum NetCommandType {
 	NET_LOAD_GAME,				// The master names the multiplayer save every machine loads.
 	NET_SHARED_MISSION,			// The master names the mission a shared house campaign plays next.
 	NET_SHARED_SETUP,			// The master names the mission version and who controls which force.
+	NET_LOBBY_CAMPAIGN,			// The lobby host names the campaign mission the game starts, or none.
 };
 
 //---------------------------------------------------------------------------
@@ -407,6 +408,20 @@ struct GlobalPacketType {
 			char Scenario[64];
 			unsigned char Control[8];
 		} SharedSetup;
+
+		/*
+		 * This names the campaign mission a local network lobby starts, with its difficulty,
+		 * its map selection stage (-1 for a campaign's first mission) and whether it needs
+		 * Firestorm. A campaign of -1 means the lobby plays a multiplayer map. It accompanies
+		 * the NET_LOBBY_CAMPAIGN command.
+		 */
+		struct {
+			short Campaign;
+			unsigned char Difficulty;
+			unsigned char Firestorm;
+			int Stage;
+			char Scenario[64];
+		} LobbyCampaign;
 	};
 };
 #pragma pack()

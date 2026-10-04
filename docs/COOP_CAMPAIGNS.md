@@ -22,7 +22,21 @@ Verify that each house can build and place structures, that its units obey order
 
 ## Play with other machines
 
-Use the same fork release, platform, mission files, campaign settings, and seed on every machine. Extract the release's executable, language library, and `ui/` together. Put `SPAWN.INI` in each machine's user directory and launch `Game.exe -SPAWN`. The [client launch-file guide](../manual/content/formats/spawn-ini.md) owns the accepted settings and connection rules.
+Use the same fork release, platform and mission files on every machine. Extract the release's executable, language library, and `ui/` together, and allow UDP port 1234 through each machine's firewall.
+
+### Start from the network lobby
+
+1. Every player opens **Multiplayer Game**, then **Network**, and enters a distinct name.
+2. The host clicks **New**. The other players select the host's game and click **Join**.
+3. The host clicks **Campaign**, chooses the campaign, the starting mission and the difficulty, and clicks **OK**. The setup now names the mission instead of a map.
+4. Every guest clicks **Accept**. The host clicks **Go!**.
+5. The host chooses the mission version and sets the matrix; the other machines show "Waiting for <host> to choose" and then load the same mission.
+
+Each machine writes its own `SPAWN.INI` for this, replacing an existing one, and keeps using it for later missions. The game closes when the campaign ends. [A shared campaign from the network lobby](../manual/content/formats/spawn-ini.md#a-shared-campaign-from-the-network-lobby) gives the exact rules.
+
+### Start with hand-written launch files
+
+Use this route for machines that cannot see each other's network broadcasts, such as players on different networks. Use the same campaign settings and seed on every machine. Put `SPAWN.INI` in each machine's user directory and launch `Game.exe -SPAWN`. The [client launch-file guide](../manual/content/formats/spawn-ini.md) owns the accepted settings and connection rules.
 
 The host's file can start with:
 
