@@ -848,12 +848,10 @@ void Receive_Random_Map_Preview(void)
 
 /// <summary>
 /// Sets the session's scenario information from the scenario list.
-/// This routine is used whenever the host picks a different map. If the scenario file is not
-/// on the hard drive, the player is asked for the disk that holds it, and the selection
-/// fails if that disk cannot be made available.
+/// An invalid index clears the selection. A missing scenario file leaves the previous
+/// selection unchanged and shows an error message.
 /// </summary>
-/// <param name="index">Index into the multiplayer scenario list. -1, or any index the list
-/// does not hold, clears the selection.</param>
+/// <param name="index">Index into the multiplayer scenario list.</param>
 /// <returns>bool; Was the scenario information set?</returns>
 bool Set_Scenario_Info_From_Index(int index)
 {

@@ -4977,6 +4977,11 @@ void TechnoClass::Set_Owner(HouseClass * newowner)
  *=============================================================================================*/
 ResultType TechnoClass::Take_Damage(int & damage, int distance, WarheadTypeClass const * warhead, TechnoClass * source, bool forced, bool no_crew)
 {
+	UnitClass const * unit = dynamic_cast<UnitClass const *>(this);
+	if (unit != nullptr && unit->DeathCounter >= 0) {
+		return(RESULT_NONE);
+	}
+
 	bool negative = damage < 0;
 
 	/*
