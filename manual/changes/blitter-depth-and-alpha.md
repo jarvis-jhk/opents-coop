@@ -1,7 +1,7 @@
 ---
 title: Correct sprite depth and lighting
 category: fix
-release: 0.2.0
+release: 0.5.0
 targets: []
 credit: [ZivDero]
 ---

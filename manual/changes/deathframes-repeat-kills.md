@@ -1,7 +1,7 @@
 ---
 title: Prevent repeated kills during vehicle death animations
 category: fix
-release: 0.2.0
+release: 0.5.0
 targets:
 - type: key
   id: DeathFrames
