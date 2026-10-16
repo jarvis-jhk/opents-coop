@@ -15,4 +15,7 @@ releases:
     status: released
     date: '2026-10-16'
   - version: 0.6.0
+    status: released
+    date: '2026-10-16'
+  - version: 0.7.0
     status: development
