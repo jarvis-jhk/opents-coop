@@ -382,6 +382,28 @@ int main(void)
 		Check(!config.Is_Shared_Resume(), "a campaign resume alone is no shared resume");
 	}
 	{
+		char const named[] = "[Settings]\nIsSinglePlayer=yes\nCampaign=GDI1\n";
+		SpawnerConfigClass config = Read(named, sizeof(named) - 1);
+		Check(config.CampaignName == "GDI1" && !config.IsScenarioNamed && config.CampaignID == -1,
+			"a campaign name is read apart from the number");
+		SpawnerConfigClass unnamed = config;
+		unnamed.CampaignName.clear();
+		Check(config.Session_Identity_CRC() != unnamed.Session_Identity_CRC(), "peers must agree on the campaign name");
+		config.Apply_Named_Campaign(3, "MAPS/MISSIONS/GDI1A.MAP");
+		Check(config.CampaignID == 3 && config.ScenarioName == "MAPS/MISSIONS/GDI1A.MAP",
+			"a named campaign without a scenario starts at its first mission");
+
+		char const later[] = "[Settings]\nIsSinglePlayer=yes\nCampaign=GDI1\nCampaignID=0\nScenario=GDI5A.MAP\n";
+		config = Read(later, sizeof(later) - 1);
+		Check(config.IsScenarioNamed, "a written scenario is noticed");
+		config.Apply_Named_Campaign(3, "MAPS/MISSIONS/GDI1A.MAP");
+		Check(config.CampaignID == 3 && config.ScenarioName == "GDI5A.MAP",
+			"a named campaign replaces the number and keeps the written scenario");
+
+		config = Read(_Campaign, sizeof(_Campaign) - 1);
+		Check(config.CampaignName.empty() && config.IsScenarioNamed, "a client's campaign file names its scenario and no campaign");
+	}
+	{
 		char const state[] = "[Settings]\nIsSinglePlayer=yes\nCampaignStage=7\nCarryOverMoney=4000\nCarryOverTimer=900\n";
 		SpawnerConfigClass config = Read(state, sizeof(state) - 1);
 		Check(config.CampaignStage == 7 && config.CarryOverMoney == 4000 && config.CarryOverTimer == 900,

@@ -250,6 +250,10 @@ int SpawnerConfigClass::Session_Identity_CRC(void) const
 	crc(ScenarioName.c_str());
 	crc(IsCampaign);
 	crc(CampaignID);
+	// Left out when unset, so a file that names no campaign keeps the identity it had before.
+	if (!CampaignName.empty()) {
+		crc(CampaignName.c_str());
+	}
 	crc(CampaignDifficulty);
 	crc(CampaignCDifficulty);
 
@@ -326,6 +330,15 @@ int SpawnerConfigClass::Playable_Handicap(int asked)
 		return(DIFF_HARD);
 	}
 	return(asked);
+}
+
+
+void SpawnerConfigClass::Apply_Named_Campaign(int campaign, std::string const & first_mission)
+{
+	CampaignID = campaign;
+	if (!IsScenarioNamed) {
+		ScenarioName = first_mission;
+	}
 }
 
 
@@ -480,8 +493,10 @@ void SpawnerConfigClass::Read_INI(INIClass const & ini)
 	IsCampaign = ini.Get_Bool(SETTINGS, "IsSinglePlayer", IsCampaign);
 	IsHost = ini.Get_Bool(SETTINGS, "Host", IsHost);
 	CampaignID = ini.Get_Int(SETTINGS, "CampaignID", CampaignID);
+	CampaignName = Read_Text(ini, SETTINGS, "Campaign", CampaignName);
 
 	ScenarioName = Read_Text(ini, SETTINGS, "Scenario", ScenarioName);
+	IsScenarioNamed = IsScenarioNamed || ini.Is_Present(SETTINGS, "Scenario");
 	MapName = Read_Text(ini, SETTINGS, "UIMapName", MapName);
 
 	LoadSaveGame = ini.Get_Bool(SETTINGS, "LoadSaveGame", LoadSaveGame);

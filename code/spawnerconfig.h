@@ -76,13 +76,19 @@ class SpawnerConfigClass
 
 		static int Playable_Handicap(int asked);
 
+		// Takes the campaign Campaign names as found in the battle files, and its first mission
+		// unless the file names a scenario.
+		void Apply_Named_Campaign(int campaign, std::string const & first_mission);
+
 		// What kind of game to start.
 		bool IsCampaign = false;
 		bool IsHost = false;
 		int CampaignID = -1;
+		std::string CampaignName;
 
 		// The scenario and the saved game.
 		std::string ScenarioName = "spawnmap.ini";
+		bool IsScenarioNamed = false;
 		std::string MapName;
 		bool LoadSaveGame = false;
 		std::string SaveGameName;

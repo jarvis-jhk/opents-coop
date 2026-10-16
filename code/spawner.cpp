@@ -439,6 +439,20 @@ static bool Spawner_Setup_Campaign(void)
 			SpawnConfig.CampaignDifficulty, SpawnConfig.CampaignCDifficulty));
 	}
 
+	// A campaign named by its battle-file name is found alike on installs that number it apart.
+	if (!SpawnConfig.CampaignName.empty()) {
+		CampaignType const named = CampaignClass::From_Name(SpawnConfig.CampaignName.c_str());
+		if (named == CAMPAIGN_NONE) {
+			return(Spawner_Refuse("The file names campaign %s, and no battle file declares it.",
+				SpawnConfig.CampaignName.c_str()));
+		}
+		if (!SpawnConfig.IsScenarioNamed && Campaigns[named]->ScenarioName[0] == '\0') {
+			return(Spawner_Refuse("Campaign %s has no first mission, and the file names no scenario.",
+				SpawnConfig.CampaignName.c_str()));
+		}
+		SpawnConfig.Apply_Named_Campaign(named, Campaigns[named]->ScenarioName);
+	}
+
 	if (SpawnConfig.CampaignID < -1 || SpawnConfig.CampaignID >= Campaigns.Count()) {
 		return(Spawner_Refuse("The file names campaign %d, and there are %d.",
 			SpawnConfig.CampaignID, Campaigns.Count()));

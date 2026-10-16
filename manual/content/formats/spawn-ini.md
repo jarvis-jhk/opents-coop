@@ -77,6 +77,8 @@ A [shared-house campaign](#a-shared-house-campaign) resumes from a file that als
 
 `IsSinglePlayer=yes` plays the mission `Scenario` names. `CampaignID` names the campaign the mission belongs to, counted from `0` in the order the battle files declare the campaigns. `-1`, the default, plays the mission outside any campaign. The campaign decides what follows the mission and which of the game's own introduction and ending movies play, as it does when the campaign is chosen from the menu.
 
+`Campaign` names the campaign by its identifier in the battle files' `[Battles]` list, such as `GDI1`, ignoring case. It replaces `CampaignID`, whose numbers depend on which battle files an installation holds. When the file also leaves out `Scenario`, the mission is the campaign's first, from the campaign's own [`Scenario`](/keys/scenario/#scope-campaign) value, and it starts as the first mission does when the campaign is chosen from the menu. A file that writes `Scenario` plays that mission in the named campaign.
+
 `DifficultyModeHuman` sets the [difficulty slot](/systems/difficulty/#from-the-setting-to-a-slot) of the player's houses, and `DifficultyModeComputer` the slot of the computer's houses. Each takes `0` to `2` and defaults to `1`. Slot `0` takes its handicap from the rules' `[Easy]` section, slot `1` from `[Normal]` and slot `2` from `[Difficult]`. [Difficulty settings](/systems/difficulty/) owns what the slots do.
 
 The two difficulty keys are independent, so the file can pair any player difficulty with any computer difficulty. The menu's Hard setting is `DifficultyModeHuman=2` with `DifficultyModeComputer=0`. A restart or the next mission keeps the pair.
@@ -302,7 +304,7 @@ The game refuses a launch it cannot play. It shows the reason, writes it to the 
 
 Any launch is refused when `SPAWN.INI` is missing or `GameSpeed` is outside `0` to `6`.
 
-A campaign mission is also refused when `DifficultyModeHuman` or `DifficultyModeComputer` is outside `0` to `2`, or when `CampaignID` is below `-1` or names a campaign the game does not have.
+A campaign mission is also refused when `DifficultyModeHuman` or `DifficultyModeComputer` is outside `0` to `2`, when `CampaignID` is below `-1` or names a campaign the game does not have, when `Campaign` names a campaign no battle file declares, or when `Campaign` names one without a first mission and the file writes no `Scenario`.
 
 A resumed game is also refused for the reasons under [Resuming a saved game](#resuming-a-saved-game).
 

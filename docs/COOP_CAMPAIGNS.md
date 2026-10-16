@@ -50,8 +50,7 @@ Name=Alice
 Side=0
 Color=0
 IsSinglePlayer=yes
-CampaignID=0
-Scenario=Maps/Missions/GDI1A.MAP
+Campaign=GDI1
 DifficultyModeHuman=1
 DifficultyModeComputer=1
 GameSpeed=1
@@ -68,6 +67,8 @@ Color=1
 Ip=192.168.1.100
 Port=1234
 ```
+
+`Campaign=GDI1` starts the GDI campaign at its first mission; add `Scenario=` to start a later mission of it. The identifiers are the entries of the battle files' `[Battles]` list.
 
 On Bob's machine, put Bob's name, side, and color in `[Settings]`, set `Host=no`, and put Alice in `[Other1]` with Alice's LAN address. Replace the example addresses with the actual addresses. Keep Alice's color lowest so she chooses the mission version and matrix. Allow the chosen UDP port through each machine's firewall.
 
