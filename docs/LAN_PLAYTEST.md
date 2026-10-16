@@ -23,6 +23,12 @@ The game writes a debug log for every run to `Debug/DEBUG_<date>_<time>.LOG` bes
 
 A crash writes a folder under `Exceptions/` beside `Game.exe`. Keep the whole folder. Its `debug-tail.log` can contain player names and network addresses, so read it before posting it anywhere public.
 
+## Over the internet with the Warpzone launcher
+
+The Warpzone launcher can start the same shared campaign between two networks without port forwarding. It installs the newest fork prerelease, finds the Tiberian Sun data, tunnels UDP port 1234 and writes `SPAWN.INI` on each machine. It starts `Game.exe` directly, so both players need Windows, and launcher 0.1.2 or newer keeps the tunnel open when the game restarts for the next mission.
+
+Player A opens OpenTS Co-op in the launcher, clicks **Host a game** and picks the campaign, both difficulties and the game speed; player B joins with the room code. The game skips the network lobby: replace steps 1 and 2 with "both games open the version chooser for A and the waiting message for B", then run steps 3 to 5 and 7. Step 6 is lobby-only, because the launcher has no setting to resume a save. Mission variants go into the game folder beside `Game.exe`, the same as without the launcher.
+
 ## Report the result
 
 Post the release, the mission version, each step's result and the step where something went wrong to the [feedback channel](COOP_CAMPAIGNS.md#send-feedback). Anyone can read that channel, so describe the problem there and keep the files until someone asks for them.
