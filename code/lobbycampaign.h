@@ -38,6 +38,13 @@ struct Launch
 	bool Firestorm = false;
 	std::string Scenario;
 
+	// A numbered save of the shared campaign every machine resumes, or empty for a new start.
+	// A resume takes the mission from the save, so it needs no scenario.
+	std::string SaveGame;
+
+	// Frames between automatic saves; 0 saves only when a player asks.
+	int AutoSave = 0;
+
 	int Seed = 0;
 	int GameSpeed = 0;
 	int ListenPort = 0;
@@ -48,6 +55,8 @@ struct Launch
 	std::vector<Seat> Seats;
 };
 
+
+bool Is_Save_Name(std::string const & name);
 
 std::string Seat_Name(std::string const & name);
 

@@ -29,6 +29,7 @@
 #include "techtype.h"
 #include "gamedirs.h"
 #include "house.h"
+#include "savestream.h"
 #include "houstype.h"
 #include "session.h"
 
@@ -36,6 +37,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 
 
@@ -44,6 +46,18 @@ namespace
 	HouseClass * CampaignPlayerPtr = NULL;
 	char const * const BASIC = "Basic";
 	char const * const PLAYER_FORCES = "PlayerForces";
+
+	// The shared campaign state the last loaded save carried, until the forces are restored.
+	struct SavedSharedForces
+	{
+		bool Present = false;
+		int SeatHouse[MAX_PLAYERS] = {};
+		unsigned char Control[ForceControl::MAX_FORCES] = {};
+		int ForceCount = 0;
+		int ForceHouse[ForceControl::MAX_FORCES] = {};
+		int SeatForce[MAX_PLAYERS] = {};
+		int CampaignPlayer = -1;
+	} SavedShared;
 }
 
 
@@ -432,15 +446,96 @@ int Forces_Money(void)
 
 
 /// <summary>
-/// Settles the forces of a campaign mission restored from a saved game. A save keeps no
-/// control matrix: it is played alone, so every house the player commands is a force.
+/// Writes or reads the state a shared campaign needs to go on from a save: each seat's house,
+/// the control matrix, the forces, the force each seat shows and the campaign player. The
+/// flag says whether the block is present; loading keeps it aside for Restore_Mission_Forces.
 /// </summary>
-void Restore_Mission_Forces(void)
+/// <param name="shared">Saving: is the block written? Loading: was it written?</param>
+/// <returns>bool; Was the block written, or read with every house it names in the save?</returns>
+bool Serialize_Shared_Forces(SaveStreamClass & stream, bool shared)
+{
+	SavedSharedForces state;
+	state.Present = shared;
+	if (!shared) {
+		if (stream.Is_Loading()) {
+			SavedShared = state;
+		}
+		return(true);
+	}
+
+	if (!stream.Is_Loading()) {
+		std::copy(std::begin(Session.SeatHouse), std::end(Session.SeatHouse), state.SeatHouse);
+		std::copy(Session.ForceSeats.begin(), Session.ForceSeats.end(), state.Control);
+		state.ForceCount = Session.ForceCount;
+		std::copy(std::begin(Session.ForceHouse), std::end(Session.ForceHouse), state.ForceHouse);
+		std::copy(std::begin(Session.SeatForce), std::end(Session.SeatForce), state.SeatForce);
+		state.CampaignPlayer = CampaignPlayerPtr != NULL ? CampaignPlayerPtr->HeapID : -1;
+	}
+
+	stream.Serialize(state.SeatHouse);
+	stream.Serialize(state.Control);
+	stream.Serialize(state.ForceCount);
+	stream.Serialize(state.ForceHouse);
+	stream.Serialize(state.SeatForce);
+	stream.Serialize(state.CampaignPlayer);
+
+	if (!stream.Is_Loading()) {
+		return(!stream.Was_Error());
+	}
+
+	SavedShared = SavedSharedForces();
+	if (stream.Was_Error()) {
+		return(false);
+	}
+
+	auto const names_house = [](int id, bool optional) {
+		return((optional && id == -1) || (id >= 0 && id < Houses.Count()));
+	};
+	bool valid = state.ForceCount >= 1 && state.ForceCount <= ForceControl::MAX_FORCES
+		&& names_house(state.CampaignPlayer, false);
+	for (int force = 0; valid && force < state.ForceCount; force++) {
+		valid = names_house(state.ForceHouse[force], false);
+	}
+	for (int seat = 0; valid && seat < MAX_PLAYERS; seat++) {
+		valid = names_house(state.SeatHouse[seat], true) && names_house(state.SeatForce[seat], true);
+	}
+	if (!valid) {
+		DebugString("The save's shared campaign seats name houses it does not hold\n");
+		return(false);
+	}
+
+	SavedShared = state;
+	return(true);
+}
+
+
+/// <summary>
+/// Settles the forces of a campaign mission restored from a saved game. A shared campaign
+/// takes its seats, forces and control matrix from the save. A campaign played alone gets
+/// every house the player commands as a force, including a shared campaign's save loaded
+/// alone, whose seat houses then stay idle.
+/// </summary>
+/// <returns>bool; False when a shared campaign loads a save that carries no shared state.</returns>
+bool Restore_Mission_Forces(void)
 {
 	CampaignPlayerPtr = NULL;
 	Session.ForceCount = 0;
 	if (Session.Type != GAME_NORMAL) {
-		return;
+		return(true);
+	}
+
+	if (Session.IsSharedHouse) {
+		if (!SavedShared.Present) {
+			DebugString("A shared campaign cannot continue from a save made alone\n");
+			return(false);
+		}
+		std::copy(std::begin(SavedShared.SeatHouse), std::end(SavedShared.SeatHouse), Session.SeatHouse);
+		std::copy(std::begin(SavedShared.Control), std::end(SavedShared.Control), Session.ForceSeats.begin());
+		Session.ForceCount = SavedShared.ForceCount;
+		std::copy(std::begin(SavedShared.ForceHouse), std::end(SavedShared.ForceHouse), Session.ForceHouse);
+		std::copy(std::begin(SavedShared.SeatForce), std::end(SavedShared.SeatForce), Session.SeatForce);
+		CampaignPlayerPtr = Houses[SavedShared.CampaignPlayer];
+		return(true);
 	}
 
 	CampaignPlayerPtr = House_From_HousesType(Scen->PlayerHouse);
@@ -455,6 +550,7 @@ void Restore_Mission_Forces(void)
 		}
 	}
 	Session.ForceSeats = ForceControl::Default(Session.ForceCount, 1);
+	return(true);
 }
 
 

@@ -3443,6 +3443,9 @@ class RecordingNetServiceClass : public UINetLobbyServiceClass
 			Model.CampaignDifficulty = "Normal";
 		}
 
+		int SavePicks = 0;
+		virtual void Pick_Save(void) override { SavePicks++; }
+
 		int Joins = 0;
 		int Hosts = 0;
 		int Starts = 0;

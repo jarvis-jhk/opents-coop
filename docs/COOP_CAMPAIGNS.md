@@ -34,6 +34,10 @@ Use the same fork release, platform and mission files on every machine. Extract 
 
 Each machine writes its own `SPAWN.INI` for this, replacing an existing one, and keeps using it for later missions. The game closes when the campaign ends. [A shared campaign from the network lobby](../manual/content/formats/spawn-ini.md#a-shared-campaign-from-the-network-lobby) gives the exact rules.
 
+### Save and resume
+
+Any player can save from the options menu with **Save Game**; every machine writes the same numbered save at once. Automatic saves follow the host's automatic-save setting from the lobby. The host can load one of the current mission's saves during play from the options menu. To continue after closing the game, the same players meet in the lobby again, the host clicks **Load Game** instead of **Campaign** and picks the save, every guest accepts, and the host clicks **Go!**. Each machine resumes its own copy of the save, so every player of the save must take part under the same name. Starting the next mission deletes the previous mission's saves. [Resuming a saved game](../manual/content/formats/spawn-ini.md#resuming-a-saved-game) gives the exact rules.
+
 ### Start with hand-written launch files
 
 Use this route for machines that cannot see each other's network broadcasts, such as players on different networks. Use the same campaign settings and seed on every machine. Put `SPAWN.INI` in each machine's user directory and launch `Game.exe -SPAWN`. The [client launch-file guide](../manual/content/formats/spawn-ini.md) owns the accepted settings and connection rules.
@@ -71,7 +75,7 @@ Start every machine before choosing the version. Set the matrix and accept it; t
 
 ## Runtime limits
 
-Shared campaigns disable saves, autosaves, shared resume, and waypoint edits. They refuse missions requesting dropship loadout selection. The stock campaign includes such missions, so this remains a partial campaign implementation. Full campaign completion and real LAN play require separate testing; consult [validation evidence](COOP_VALIDATION.md) for the earlier shared-house baseline.
+Shared campaigns disable quick saves and waypoint edits. A save can be resumed only by all of its players. They refuse missions requesting dropship loadout selection. The stock campaign includes such missions, so this remains a partial campaign implementation. Full campaign completion and real LAN play require separate testing; consult [validation evidence](COOP_VALIDATION.md) for the earlier shared-house baseline.
 
 The engine writes crash reports locally. `tools/co-op/watch-crashes.py` can watch a user directory and forward faults to a privately configured endpoint; keep endpoint credentials outside this public repository. Installing the engine alone does not enable remote reporting.
 

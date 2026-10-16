@@ -697,7 +697,14 @@ bool LoadOptionsClass::Read_File(FileEntryClass * fdata, WIN32_FIND_DATAA * ff)
 }
 
 
-MultiplayerLoadOptionsClass::MultiplayerLoadOptionsClass(void)
+MultiplayerLoadOptionsClass::MultiplayerLoadOptionsClass(void) :
+	MultiplayerLoadOptionsClass(Session.Type)
+{
+}
+
+
+MultiplayerLoadOptionsClass::MultiplayerLoadOptionsClass(GameType kind) :
+	Kind(kind)
 {
 	Extension = "NET";
 	Picked[0] = '\0';
@@ -722,5 +729,5 @@ bool MultiplayerLoadOptionsClass::Read_File(FileEntryClass * entry, WIN32_FIND_D
 	if (entry == NULL || ff == NULL || Multiplayer_Save_Slot(ff->cFileName) < 0) {
 		return(false);
 	}
-	return(LoadOptionsClass::Read_File(entry, ff) && entry->Type == Session.Type);
+	return(LoadOptionsClass::Read_File(entry, ff) && entry->Type == Kind);
 }

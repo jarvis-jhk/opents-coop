@@ -248,6 +248,7 @@
 	decorator: image(wodkick.pcx scale-none left top);
 }
 
+#resumesave { left: 170dp; top: 357dp; width: 122dp; }
 #pickcampaign { left: 299dp; top: 357dp; width: 122dp; }
 
 #campaigninfo { left: 450dp; top: 41dp; width: 163dp; height: 160dp; }

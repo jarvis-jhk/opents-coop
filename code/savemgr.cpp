@@ -102,13 +102,8 @@ bool SaveManagerClass::Request_Save_Game(char const * file_name, char const * de
 {
 	if (file_name == NULL || descr == NULL) return(false);
 
-	// A shared house campaign cannot be resumed yet, so nothing of it is saved.
-	if (Session.IsSharedHouse) {
-		DebugString("Ignoring a save request in a shared house campaign\n");
-		return(false);
-	}
-
-	if (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH) {
+	// A shared house campaign keeps the campaign's type and saves in step like a match.
+	if (!Session.Is_Networked()) {
 		bool saved = Save_Game(file_name, descr);
 		Record_Save_Outcome(notice, saved);
 		return(saved);
@@ -263,9 +258,9 @@ bool SaveManagerClass::Is_Multiplayer_Saving_Allowed(void) const
 /// </summary>
 void SaveManagerClass::Autosave_Service(void)
 {
-	if (Session.Play || Session.IsSharedHouse) return;
+	if (Session.Play) return;
 
-	bool single = Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH;
+	bool single = !Session.Is_Networked();
 
 	if (!single && (!MultiplayerSavingAllowed || MultiplayerLoad.Is_Pending())) return;
 
@@ -312,9 +307,8 @@ void SaveManagerClass::Quick_Save_Service(void)
 	if (!QuickSaveRequested) return;
 	QuickSaveRequested = false;
 
-	if (!ScenarioActive || Session.Play) return;
+	if (!ScenarioActive || Session.Play || Session.Is_Networked()) return;
 	if (Session.Type != GAME_NORMAL && Session.Type != GAME_SKIRMISH) return;
-	if (Session.IsSharedHouse) return;
 
 	char description[512];
 	std::snprintf(description, sizeof(description), Fetch_String(TXT_QUICKSAVE_DESCRIPTION), Scen->Description);
@@ -415,11 +409,11 @@ void SaveManagerClass::Write_Spawn_Copy(void)
 
 /// <summary>
 /// May this machine ask every machine to load a multiplayer save now? Only the master of a
-/// network game may, while no load is pending and no recording plays.
+/// network game or shared campaign may, while no load is pending and no recording plays.
 /// </summary>
 bool SaveManagerClass::Multiplayer_Load_Is_Allowed(void) const
 {
-	return((Session.Type == GAME_IPX || Session.Type == GAME_INTERNET) && !Session.Play
+	return(Session.Is_Networked() && !Session.Play
 		&& Session.Am_I_Master() && !MultiplayerLoad.Is_Pending());
 }
 
@@ -483,7 +477,7 @@ bool SaveManagerClass::Multiplayer_Load_Request(int slot)
 /// </summary>
 void SaveManagerClass::Multiplayer_Load_Receive(int slot)
 {
-	if (Session.Type != GAME_IPX && Session.Type != GAME_INTERNET) {
+	if (!Session.Is_Networked()) {
 		DebugString("Ignoring a load request outside a network game\n");
 		return;
 	}

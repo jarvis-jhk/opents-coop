@@ -22,12 +22,18 @@
 	margin-top: -114dp;
 }
 
+.shared #reveal
+{
+	height: 203dp;
+	margin-top: -101dp;
+}
+
 #content
 {
 	padding: 19dp 83dp 0 82dp;
 }
 
-.solo #content
+.solo #content, .shared #content
 {
 	padding-left: 70dp;
 	padding-right: 71dp;
@@ -39,7 +45,7 @@ button
 	width: 149dp;
 }
 
-.solo button
+.solo button, .shared button
 {
 	width: 173dp;
 }
@@ -54,17 +60,17 @@ button
 	margin-top: 6dp;
 }
 
-.solo #briefing, .solo #abort
+.solo #briefing, .solo #abort, .shared #briefing, .shared #abort
 {
 	margin-top: 4dp;
 }
 
-.solo #load, .solo #delete, .solo #resume
+.solo #load, .solo #delete, .solo #resume, .shared #load, .shared #resume
 {
 	margin-top: 3dp;
 }
 
-.solo #save
+.solo #save, .shared #save
 {
 	margin-top: 5dp;
 }

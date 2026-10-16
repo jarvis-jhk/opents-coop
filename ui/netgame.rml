@@ -72,6 +72,7 @@
 	<div id="map" class="frame" data-if="!campaign"><surface id="preview"/></div>
 
 	<button id="kick" data-if="host" tip="Kick a user from your game" data-event-click="queue('kick')"></button>
+	<button id="resumesave" data-if="host" tip="Resume a shared campaign saved by the same players" data-event-click="queue('resume')">Load Game</button>
 	<button id="pickcampaign" data-if="host" tip="Play a campaign mission together instead of a multiplayer map" data-event-click="queue('campaign')">Campaign</button>
 	<button id="cancel" data-event-click="queue('cancel')">[[TXT_CANCEL]]</button>
 	<button id="go" data-if="host" data-class-disabled="!cango" data-event-click="queue('go')">Go!</button>

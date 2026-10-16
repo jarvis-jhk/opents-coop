@@ -50,6 +50,8 @@ void Net2Set_Handle(char const * name);
 void Net2Kick(char const * name);
 void Net2Pick_Map(void);
 void Net2Pick_Campaign(void);
+void Net2Pick_Shared_Save(void);
+bool Net2Campaign_Is_Ready(void);
 bool Net2Campaign_Names(std::string & campaign, std::string & mission, std::string & difficulty);
 bool Net2_Campaign_Launch_Pending(void);
 bool Net2_Campaign_Spawn_INI(std::string & text, std::string & fault);

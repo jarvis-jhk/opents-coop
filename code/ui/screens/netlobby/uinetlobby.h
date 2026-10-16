@@ -163,6 +163,7 @@ class UINetLobbyServiceClass
 		virtual void Accept(void) = 0;
 		virtual void Pick_Map(void) = 0;
 		virtual void Pick_Campaign(void) = 0;
+		virtual void Pick_Save(void) = 0;
 
 		virtual void Join(void) = 0;
 		virtual void Host(void) = 0;

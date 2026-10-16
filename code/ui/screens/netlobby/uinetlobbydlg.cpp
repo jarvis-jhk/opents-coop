@@ -74,6 +74,7 @@ class UINetLobbyEngineServiceClass : public UINetLobbyServiceClass
 		virtual void Accept(void) override;
 		virtual void Pick_Map(void) override;
 		virtual void Pick_Campaign(void) override;
+		virtual void Pick_Save(void) override;
 		virtual void Join(void) override;
 		virtual void Host(void) override;
 		virtual bool Can_Start(void) override;
@@ -214,7 +215,8 @@ void UINetLobbyEngineServiceClass::Read(UINetLobbyState & state)
 	state.CreditsStep = 100;
 	state.Credits = Session.Options.Credits;
 
-	state.CanAccept = state.Kind == UI_NET_LOBBY_GUEST && Session.Players.Count() > 0 && Session.Players[0]->Player.Status == 0;
+	state.CanAccept = state.Kind == UI_NET_LOBBY_GUEST && Session.Players.Count() > 0 && Session.Players[0]->Player.Status == 0
+		&& Net2Campaign_Is_Ready();
 	state.CanGo = true;
 }
 
@@ -336,6 +338,12 @@ void UINetLobbyEngineServiceClass::Pick_Map(void)
 void UINetLobbyEngineServiceClass::Pick_Campaign(void)
 {
 	Net2Pick_Campaign();
+}
+
+
+void UINetLobbyEngineServiceClass::Pick_Save(void)
+{
+	Net2Pick_Shared_Save();
 }
 
 

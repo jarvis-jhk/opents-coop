@@ -731,6 +731,13 @@ static bool Put_All(SaveStreamClass & stream, int save_net)
 		}
 	}
 
+	bool shared = Session.IsSharedHouse;
+	stream.Serialize(shared);
+	if (!Serialize_Shared_Forces(stream, shared)) {
+		DebugString("\t***** FAILED!\n");
+		return(false);
+	}
+
 	return(!stream.Was_Error());
 }
 
@@ -983,6 +990,13 @@ static bool Get_All(SaveStreamClass & stream, bool save_net)
 		}
 	}
 
+	bool shared = false;
+	stream.Serialize(shared);
+	if (!Serialize_Shared_Forces(stream, shared)) {
+		DebugString("\t***** FAILED!\n");
+		return(false);
+	}
+
 	Map.Flag_To_Redraw(GS_REDRAW_ALL);
 
 	return(!stream.Was_Error());
@@ -1174,7 +1188,9 @@ bool Load_Game(const char *file_name)
 	**	Fixup any expediency data that can be inferred from the physical
 	**	data loaded.
 	*/
-	Restore_Mission_Forces();
+	if (!Restore_Mission_Forces()) {
+		return(false);
+	}
 	Post_Load_Game();
 
 	// The next mission of a resumed campaign is played at the pair the save carries.
@@ -1327,12 +1343,58 @@ bool Get_Savefile_Info(char const * name, SaveVersionInfo * info)
 
 
 /// <summary>
+/// Gives each player of a shared campaign the saved seat carrying their name. Every saved seat
+/// must be taken again, since a force only its absent player controls would have nobody.
+/// </summary>
+/// <returns>bool; Are the seated players exactly the saved seats?</returns>
+static bool Reconcile_Shared_Seats(void)
+{
+	int saved = 0;
+	for (int seat = 0; seat < MAX_PLAYERS; seat++) {
+		if (Session.SeatHouse[seat] >= 0) {
+			saved++;
+		}
+	}
+	if (saved != Session.Players.Count()) {
+		DebugString("The save has %d seats and %d players returned\n", saved, Session.Players.Count());
+		return(false);
+	}
+
+	for (int i = 0; i < Session.Players.Count(); i++) {
+		int found = -1;
+		for (int seat = 0; seat < MAX_PLAYERS; seat++) {
+			int const house = Session.SeatHouse[seat];
+			if (house >= 0 && stricmp(Session.Players[i]->Name, Houses[house]->IniName) == 0) {
+				found = seat;
+				break;
+			}
+		}
+		for (int other = 0; found >= 0 && other < i; other++) {
+			if (Session.Players[other]->Player.ID == found) {
+				found = -1;
+			}
+		}
+		if (found < 0) {
+			DebugString("%s holds no seat in the save\n", Session.Players[i]->Name);
+			return(false);
+		}
+		Session.Players[i]->Player.ID = found;
+	}
+	return(true);
+}
+
+
+/// <summary>
 /// Gives each seated player the restored house carrying its name, so the connections formed
-/// afterwards reach the right houses.
+/// afterwards reach the right houses. A shared campaign seats them by its saved seats instead.
 /// </summary>
 /// <returns>bool; Do the seats and the saved houses agree?</returns>
 bool Reconcile_Players(void)
 {
+	if (Session.IsSharedHouse) {
+		return(Reconcile_Shared_Seats());
+	}
+
 	if (Session.Players.Count() == 0) {
 		return(true);
 	}

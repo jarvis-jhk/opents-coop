@@ -19,6 +19,7 @@
 
 class CCINIClass;
 class HouseClass;
+class SaveStreamClass;
 
 
 // One playable version of a campaign mission: the stock file or a variant beside it.
@@ -42,7 +43,8 @@ int Force_Count(void);
 HouseClass * Force_House(int force);
 int Force_Of(HouseClass const * house);
 bool Is_Local_Force(HouseClass const * house);
-void Restore_Mission_Forces(void);
+bool Serialize_Shared_Forces(SaveStreamClass & stream, bool shared);
+bool Restore_Mission_Forces(void);
 void Clear_Mission_Forces(void);
 
 HouseClass * Campaign_Player(void);

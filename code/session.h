@@ -412,8 +412,9 @@ struct GlobalPacketType {
 		/*
 		 * This names the campaign mission a local network lobby starts, with its difficulty,
 		 * its map selection stage (-1 for a campaign's first mission) and whether it needs
-		 * Firestorm. A campaign of -1 means the lobby plays a multiplayer map. It accompanies
-		 * the NET_LOBBY_CAMPAIGN command.
+		 * Firestorm. A campaign of -1 means the lobby plays a multiplayer map. A save name
+		 * resumes that numbered save instead, and AutoSave is the frames between automatic
+		 * saves. It accompanies the NET_LOBBY_CAMPAIGN command.
 		 */
 		struct {
 			short Campaign;
@@ -421,6 +422,8 @@ struct GlobalPacketType {
 			unsigned char Firestorm;
 			int Stage;
 			char Scenario[64];
+			char SaveGame[16];
+			int AutoSave;
 		} LobbyCampaign;
 	};
 };

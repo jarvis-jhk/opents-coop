@@ -227,6 +227,16 @@ bool SpawnerConfigClass::Is_Shared_House(void) const
 
 
 /// <summary>
+/// Does this file resume a campaign mission that more than one person played together? It
+/// must say so as the launch that started the mission did: a campaign with several people.
+/// </summary>
+bool SpawnerConfigClass::Is_Shared_Resume(void) const
+{
+	return(Launch_Type() == LaunchType::Resume && IsCampaign && HumanCount > 1);
+}
+
+
+/// <summary>
 /// The identity of the match this file asks for. It covers every value the course of the
 /// match depends on and nothing merely displayed, so two machines handed the same match
 /// agree. The version comes first: one file read two ways is not one match.

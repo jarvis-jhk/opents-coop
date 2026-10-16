@@ -111,6 +111,8 @@ void UINetLobbyPresenterClass::Execute(UIIntent const & intent)
 		Service.Pick_Map();
 	} else if (intent.Name == "campaign") {
 		Service.Pick_Campaign();
+	} else if (intent.Name == "resume") {
+		Service.Pick_Save();
 	} else if (intent.Name == "new") {
 		Service.Host();
 	} else if (intent.Name == "join") {

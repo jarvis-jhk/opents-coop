@@ -103,6 +103,7 @@ class UIGameOptionsViewClass : public UIRmlViewClass
 		{
 			UIGameOptionsState & state = Data.State;
 			return(model.Bind("solo", &state.Solo)
+				&& model.Bind("shared", &state.Shared)
 				&& model.Bind("internet", &state.Internet)
 				&& model.Bind("briefingenabled", &state.BriefingEnabled)
 				&& model.Bind("loadenabled", &state.LoadEnabled)

@@ -377,6 +377,9 @@ int main(void)
 		Check(config.Is_Shared_House(), "two campaign players share the scenario house");
 		config.LoadSaveGame = true;
 		Check(!config.Is_Shared_House(), "a resume does not infer shared play from its roster");
+		Check(config.Is_Shared_Resume(), "a campaign resume with two players resumes a shared house");
+		config.HumanCount = 1;
+		Check(!config.Is_Shared_Resume(), "a campaign resume alone is no shared resume");
 	}
 	{
 		char const state[] = "[Settings]\nIsSinglePlayer=yes\nCampaignStage=7\nCarryOverMoney=4000\nCarryOverTimer=900\n";
@@ -1225,6 +1228,64 @@ int main(void)
 		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a lobby without a chosen campaign is refused");
 
 		Check(LobbyCampaign::Seat_Name("a;b[c]") == "a_b_c_", "a name keeps no character the file cannot hold");
+	}
+
+	/*
+	 * A lobby resume names the shared campaign's numbered save, which every machine resumes
+	 * from its own copy with the same seats.
+	 */
+	{
+		LobbyCampaign::Launch launch;
+		launch.Campaign = 1;
+		launch.SaveGame = "SVGM_003.NET";
+		launch.AutoSave = 5400;
+		launch.Seed = 4711;
+		launch.ListenPort = 1234;
+		launch.Host = "Zed";
+		launch.Seats = {
+			{ "bob", 0x0201A8C0u, 1234 },
+			{ "Zed", 0x0101A8C0u, 1234 },
+		};
+
+		std::string fault;
+		int identity[2] = {};
+		bool resumed = true;
+		for (int machine = 0; machine < 2; machine++) {
+			launch.Local = launch.Seats[machine].Name;
+			std::string const text = LobbyCampaign::Spawn_INI(launch);
+			SpawnerConfigClass config = Read(text.c_str(), (int)text.size());
+			identity[machine] = config.Session_Identity_CRC();
+			resumed = resumed && config.Launch_Type() == LaunchType::Resume && config.Is_Shared_Resume()
+				&& !config.Is_Shared_House() && config.SaveGameName == "SVGM_003.NET"
+				&& config.AutoSaveInterval == 5400 && config.HumanCount == 2
+				&& text.find("Scenario=") == std::string::npos && config.Is_Playable(2, 8, fault);
+		}
+		Check(resumed, "a lobby resume names the save and seats both machines");
+		Check(identity[0] == identity[1], "both machines' resume files name one match");
+
+		launch.AutoSave = 0;
+		Check(LobbyCampaign::Spawn_INI(launch).find("AutoSaveGame") == std::string::npos,
+			"a lobby without automatic saves writes no interval");
+
+		LobbyCampaign::Launch bad = launch;
+		bad.SaveGame = "..\\SVGM_003.NET";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault) && !fault.empty(), "a save outside the save folder is refused");
+
+		bad = launch;
+		bad.SaveGame = "SVGM_0003_LONG.NET";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a save name the lobby packet cannot carry is refused");
+
+		bad = launch;
+		bad.SaveGame.clear();
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a new start still needs a mission");
+
+		bad = launch;
+		bad.AutoSave = -1;
+		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a negative automatic save interval is refused");
+
+		Check(LobbyCampaign::Is_Save_Name("SVGM_000.NET") && !LobbyCampaign::Is_Save_Name("SVGM.000.NET")
+			&& !LobbyCampaign::Is_Save_Name(".NET") && !LobbyCampaign::Is_Save_Name("A B.NET"),
+			"a save name is one plain file name with one extension");
 	}
 
 	std::printf("\n%s\n", Failures == 0 ? "PASSED" : "FAILED");

@@ -47,6 +47,7 @@ class UIGameOptionsServiceClass
 struct UIGameOptionsState
 {
 	bool Solo = true;
+	bool Shared = false;
 	bool Internet = false;
 	bool BriefingEnabled = true;
 	bool LoadEnabled = true;

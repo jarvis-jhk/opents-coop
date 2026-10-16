@@ -31,6 +31,7 @@
 #include "goptions.h"
 #include "houstype.h"
 #include "init.h"
+#include "loaddlg.h"
 #include "ipxmgr.h"
 #include "language/language.h"
 #include "lobbycampaign.h"
@@ -42,6 +43,8 @@
 #include "nettiming.h"
 #include "newmenu.h"
 #include "rules.h"
+#include "saveload.h"
+#include "savever.h"
 #include "scenario.h"
 #include "sdl/sdlwindow.h"
 #include "sendfile.h"
@@ -97,6 +100,13 @@ struct Net2LobbyCampaignType
 	int Stage = -1;
 	bool Firestorm = false;
 	char Scenario[64] = "";
+
+	// The numbered shared campaign save the lobby resumes, or empty for a new start.
+	char SaveGame[16] = "";
+	int AutoSave = 0;
+
+	// Does this machine hold that save, written by this version? Always true without one.
+	bool SavePresent = true;
 
 	// The campaign's description, the mission's name and the difficulty's, as this machine shows them.
 	std::string Label;
@@ -371,6 +381,17 @@ static void Net2Campaign_Describe(void)
 	Net2Campaign.Label = campaign;
 	Net2Campaign.Mission = title[0] != '\0' ? title : Net2Campaign.Scenario;
 	Net2Campaign.DifficultyName = Fetch_String(GameDifficultyNames[difficulty]);
+	Net2Campaign.SavePresent = true;
+
+	if (Net2Campaign.SaveGame[0] != '\0') {
+		SaveVersionInfo info;
+		Net2Campaign.SavePresent = Get_Savefile_Info(Net2Campaign.SaveGame, &info)
+			&& info.Get_Internal_Version() == ExpectedGameVersion && (GameType)info.Get_Game_Type() == GAME_NORMAL;
+		Net2Campaign.Mission = Net2Campaign.SavePresent
+			? std::string("Resume: ") + info.Get_Scenario_Description()
+			: std::string("Resume: ") + Net2Campaign.SaveGame + " is missing here";
+		Net2Campaign.DifficultyName = "as saved";
+	}
 }
 
 
@@ -388,6 +409,8 @@ static void Net2Campaign_Send(void)
 	packet.LobbyCampaign.Firestorm = Net2Campaign.Firestorm ? 1 : 0;
 	packet.LobbyCampaign.Stage = Net2Campaign.Stage;
 	std::snprintf(packet.LobbyCampaign.Scenario, sizeof(packet.LobbyCampaign.Scenario), "%s", Net2Campaign.Scenario);
+	std::snprintf(packet.LobbyCampaign.SaveGame, sizeof(packet.LobbyCampaign.SaveGame), "%s", Net2Campaign.SaveGame);
+	packet.LobbyCampaign.AutoSave = Net2Campaign.AutoSave;
 
 	for (int i = 1; i < Session.Players.Count(); i++) {
 		Ipx.Send_Global_Message(&packet, sizeof(packet), 1, &Session.Players[i]->Address);
@@ -416,12 +439,19 @@ static void Net2Campaign_Receive(GlobalPacketType const & packet)
 	char scenario[sizeof(packet.LobbyCampaign.Scenario)];
 	std::snprintf(scenario, sizeof(scenario), "%.*s", (int)sizeof(scenario) - 1, packet.LobbyCampaign.Scenario);
 
+	// A name a launch file could not carry is dropped, so the guest cannot accept a resume.
+	char save[sizeof(packet.LobbyCampaign.SaveGame)];
+	std::snprintf(save, sizeof(save), "%.*s", (int)sizeof(save) - 1, packet.LobbyCampaign.SaveGame);
+	bool const save_valid = save[0] == '\0' || LobbyCampaign::Is_Save_Name(save);
+
 	int const campaign = packet.LobbyCampaign.Campaign < 0 ? -1 : packet.LobbyCampaign.Campaign;
 	bool const changed = campaign != Net2Campaign.Campaign
 		|| (campaign >= 0 && (packet.LobbyCampaign.Difficulty != Net2Campaign.Difficulty
 			|| packet.LobbyCampaign.Stage != Net2Campaign.Stage
 			|| (packet.LobbyCampaign.Firestorm != 0) != Net2Campaign.Firestorm
-			|| stricmp(scenario, Net2Campaign.Scenario) != 0));
+			|| stricmp(scenario, Net2Campaign.Scenario) != 0
+			|| stricmp(save, Net2Campaign.SaveGame) != 0
+			|| packet.LobbyCampaign.AutoSave != Net2Campaign.AutoSave));
 	if (!changed) {
 		return;
 	}
@@ -431,7 +461,12 @@ static void Net2Campaign_Receive(GlobalPacketType const & packet)
 	Net2Campaign.Stage = packet.LobbyCampaign.Stage;
 	Net2Campaign.Firestorm = packet.LobbyCampaign.Firestorm != 0;
 	std::snprintf(Net2Campaign.Scenario, sizeof(Net2Campaign.Scenario), "%s", scenario);
+	std::snprintf(Net2Campaign.SaveGame, sizeof(Net2Campaign.SaveGame), "%s", save);
+	Net2Campaign.AutoSave = std::max(0, packet.LobbyCampaign.AutoSave);
 	Net2Campaign_Describe();
+	if (!save_valid) {
+		Net2Campaign.SavePresent = false;
+	}
 
 	if (Session.Players.Count() > 0) {
 		Session.Players[0]->Player.Status = 0;
@@ -457,16 +492,56 @@ void Net2Pick_Campaign(void)
 	int const index = std::clamp(picked->Mission, 0, (int)picked->Missions.size() - 1);
 	UICampaignMission const & mission = picked->Missions[index];
 
+	Net2Campaign = Net2LobbyCampaignType();
 	Net2Campaign.Campaign = picked->Campaign;
 	Net2Campaign.Difficulty = Options.Difficulty;
 	Net2Campaign.Stage = mission.Stage;
 	Net2Campaign.Firestorm = Addon_Enabled(ADDON_FIRESTORM);
+	Net2Campaign.AutoSave = std::max(0, Options.AutoSaveInterval);
 	std::snprintf(Net2Campaign.Scenario, sizeof(Net2Campaign.Scenario), "%s", mission.File.c_str());
 	Net2Campaign_Describe();
 
 	Net2Campaign_Clear_Accepts();
 	Net2Campaign_Send();
 	DebugString("Lobby campaign chosen: campaign %d, %s, stage %d\n", Net2Campaign.Campaign, Net2Campaign.Scenario, Net2Campaign.Stage);
+}
+
+
+/// <summary>
+/// Lets the host choose a saved shared campaign for every player to resume. Each machine
+/// resumes its own copy of the numbered save, which every player of that campaign wrote.
+/// </summary>
+void Net2Pick_Shared_Save(void)
+{
+	MultiplayerLoadOptionsClass list(GAME_NORMAL);
+	if (!list.Load() || !LobbyCampaign::Is_Save_Name(list.Picked_File())) {
+		return;
+	}
+
+	SaveVersionInfo info;
+	if (!Get_Savefile_Info(list.Picked_File(), &info)) {
+		return;
+	}
+
+	Net2Campaign = Net2LobbyCampaignType();
+	Net2Campaign.Campaign = std::max(0, info.Get_Campaign_Number());
+	Net2Campaign.Firestorm = Addon_Enabled(ADDON_FIRESTORM);
+	Net2Campaign.AutoSave = std::max(0, Options.AutoSaveInterval);
+	std::snprintf(Net2Campaign.SaveGame, sizeof(Net2Campaign.SaveGame), "%s", list.Picked_File());
+	Net2Campaign_Describe();
+
+	Net2Campaign_Clear_Accepts();
+	Net2Campaign_Send();
+	DebugString("Lobby resumes the shared campaign save %s\n", Net2Campaign.SaveGame);
+}
+
+
+/// <summary>
+/// May this machine accept what the lobby starts? A resume needs its save here.
+/// </summary>
+bool Net2Campaign_Is_Ready(void)
+{
+	return(Net2Campaign.Campaign < 0 || Net2Campaign.SavePresent);
 }
 
 
@@ -503,6 +578,8 @@ static LobbyCampaign::Launch Net2Campaign_Launch(void)
 	launch.Stage = Net2Campaign.Stage;
 	launch.Firestorm = Net2Campaign.Firestorm;
 	launch.Scenario = Net2Campaign.Scenario;
+	launch.SaveGame = Net2Campaign.SaveGame;
+	launch.AutoSave = Net2Campaign.AutoSave;
 	launch.Seed = Seed;
 	launch.GameSpeed = Session.Options.GameSpeed;
 	launch.ListenPort = WestwoodOnline_PortNumber;

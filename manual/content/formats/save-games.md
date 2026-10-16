@@ -82,9 +82,9 @@ A quick save is described as `Quick Save: ` followed by the scenario's descripti
 
 ## Numbered multiplayer saves
 
-A game against other machines writes every save, timed or from the options menu, as `SVGM_nnn.NET`. The number `nnn` is the lowest from `000` that no file in the folder uses, so a match's saves count up in step on every machine. When every number up to `999` is taken, `SVGM_999.NET` is overwritten.
+A game against other machines, including a [shared-house campaign](/formats/spawn-ini/#a-shared-house-campaign), writes every save, timed or from the options menu, as `SVGM_nnn.NET`. The number `nnn` is the lowest from `000` that no file in the folder uses, so a match's saves count up in step on every machine. When every number up to `999` is taken, `SVGM_999.NET` is overwritten.
 
-Starting a new match deletes the numbered saves and the `spawnSG.ini` a previous match left. A resumed match keeps its files and continues the numbering.
+Starting a new match, or the next mission of a shared campaign, deletes the numbered saves and the `spawnSG.ini` a previous match left. A resumed match keeps its files and continues the numbering.
 
 A client-launched match copies its launch file into the folder as `spawnSG.ini` at its first successful save. The CnCNet client reads that copy to resume the match. If the copy cannot be written, the next save tries again.
 
@@ -92,7 +92,7 @@ The game no longer writes `SAVEGAME.NET`. Clients used to wait for a save under 
 
 ## Loading during a match
 
-In a game against other machines, the master can load one of the match's saves while the match is running, from the options menu or from the [out-of-sync dialog](/systems/out-of-sync-recovery/). The list shows numbered saves written by this version in the same kind of network game. Only the 32 most recently written `.NET` files in the folder are read for the list.
+In a game against other machines or a shared campaign, the master can load one of the match's saves while the match is running, from the options menu or from the [out-of-sync dialog](/systems/out-of-sync-recovery/). The list shows numbered saves written by this version in the same kind of game. Only the 32 most recently written `.NET` files in the folder are read for the list.
 
 Picking a save starts a five-second countdown on every machine. Each machine then loads the save with the same number from its own `Saved Games` folder:
 
@@ -100,7 +100,7 @@ Picking a save starts a five-second countdown on every machine. Each machine the
 2. It gives each seated player the saved house with that player's name.
 3. It reconnects to the other machines and compares its restored game with theirs, as a resumed save does. If the games differ, the match stops with a mismatch message.
 
-A player who has left since the save was written has their house played by the computer.
+A player who has left since the save was written has their house played by the computer. A shared campaign seats each player in the seat saved under their name instead, and its load fails on every machine when a player of the save has left.
 
 No save is written while a load is pending. A machine that cannot load the save shows the loading error and leaves the match.
 
@@ -108,7 +108,7 @@ No save is written while a load is pending. A machine that cannot load the save 
 
 The listing table holds the description shown in the list, the player's house, the campaign and scenario numbers, and the game type. It also holds three timestamps, all set to the time of the save, a game-version field that is always 1, the program name `SUN.EXE`, and the OpenTS version stamp described in [What is checked](#what-is-checked). The header holds the version of the file format itself. The load dialog lists saves newest first by the file's last-modified time, not by these timestamps.
 
-The game state is a fixed sequence of records, written and read in the same order. It opens with the scenario, the environment, the rules, the animation types and the map. The global values and the lists of the other type definitions and runtime objects follow, and outside a campaign the game options come last. Each list stores its length ahead of its members, and each member stores its fields one by one, so the file does not depend on how objects are laid out in memory.
+The game state is a fixed sequence of records, written and read in the same order. It opens with the scenario, the environment, the rules, the animation types and the map. The global values and the lists of the other type definitions and runtime objects follow, and outside a campaign the game options follow. A shared campaign's save ends with each player's seat, the mission's forces, the control matrix and the force each player shows; every other save ends with a marker that it holds none. Each list stores its length ahead of its members, and each member stores its fields one by one, so the file does not depend on how objects are laid out in memory.
 
 The type definitions are stored in the save. A loaded game therefore uses the rules types it was saved with, not those in the current rules files. Artwork is not stored: once a type is restored, its shapes and voxel models are loaded again from the game's files, so a save loaded against changed files shows the current artwork.
 

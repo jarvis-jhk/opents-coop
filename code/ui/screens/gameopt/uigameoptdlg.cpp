@@ -69,7 +69,8 @@ class UIGameOptionsEngineServiceClass : public UIGameOptionsServiceClass
 void UI_Game_Options_State(UIGameOptionsState & state)
 {
 	state = UIGameOptionsState();
-	state.Solo = (Session.Type == GAME_NORMAL || Session.Type == GAME_SKIRMISH);
+	state.Shared = Session.IsSharedHouse;
+	state.Solo = !Session.Is_Networked();
 	state.Internet = (Session.Type == GAME_INTERNET);
 
 	if (state.Solo) {
@@ -78,6 +79,7 @@ void UI_Game_Options_State(UIGameOptionsState & state)
 		state.DeleteEnabled = present;
 		state.BriefingEnabled = (Session.Type != GAME_SKIRMISH);
 	} else {
+		state.BriefingEnabled = state.Shared;
 		state.SaveEnabled = SaveManager.Is_Multiplayer_Saving_Allowed();
 		state.LoadEnabled = SaveManager.Multiplayer_Load_Is_Allowed()
 			&& MultiplayerLoadOptionsClass().Files_Present();
@@ -132,7 +134,7 @@ UIGameOptionsChoice UI_Game_Options_Dialog(void)
 	}
 
 	if (!state.Solo && choice == UI_GAME_OPTIONS_SAVE) {
-		OutList.push_back(EventClass(PlayerPtr->HeapID, EventClass::SAVEGAME));
+		OutList.push_back(EventClass(Session.Local_Seat_ID(), EventClass::SAVEGAME));
 	}
 	if (!state.Solo && choice == UI_GAME_OPTIONS_LOAD) {
 		SpecialDialog = SDLG_LOAD;

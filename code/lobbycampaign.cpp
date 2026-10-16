@@ -29,6 +29,9 @@ int const DIFFICULTY_COUNT = 3;
 // The scenario name travels in a 64-byte field of the shared campaign packets.
 std::size_t const SCENARIO_MAX = 63;
 
+// The save name travels in a 16-byte field of the lobby campaign packet.
+std::size_t const SAVE_MAX = 15;
+
 
 bool Same_Name(std::string const & left, std::string const & right)
 {
@@ -69,6 +72,22 @@ void Put(std::string & out, char const * key, int value)
 	Put(out, key, std::to_string(value));
 }
 
+}
+
+
+/// <summary>
+/// Is this a save file name a launch file may name? It must be a plain file name of letters,
+/// digits, underscores and one dot, short enough for the lobby packet.
+/// </summary>
+bool Is_Save_Name(std::string const & name)
+{
+	if (name.empty() || name.size() > SAVE_MAX || std::count(name.begin(), name.end(), '.') != 1
+		|| name.front() == '.' || name.back() == '.') {
+		return(false);
+	}
+	return(std::all_of(name.begin(), name.end(), [](char c) {
+		return(std::isalnum((unsigned char)c) || c == '_' || c == '.');
+	}));
 }
 
 
@@ -118,8 +137,12 @@ bool Is_Launchable(Launch const & launch, std::string & fault)
 
 	if (launch.Campaign < 0) {
 		fault = "No campaign is chosen.";
-	} else if (launch.Scenario.empty() || launch.Scenario.size() > SCENARIO_MAX) {
+	} else if (!launch.SaveGame.empty() && !Is_Save_Name(launch.SaveGame)) {
+		fault = "The saved game's file name is not one a launch file can name.";
+	} else if ((launch.SaveGame.empty() && launch.Scenario.empty()) || launch.Scenario.size() > SCENARIO_MAX) {
 		fault = "The mission file name is empty or longer than 63 characters.";
+	} else if (launch.AutoSave < 0) {
+		fault = "The time between automatic saves is negative.";
 	} else if (launch.Difficulty < 0 || launch.Difficulty >= DIFFICULTY_COUNT) {
 		fault = "The difficulty is not one of the three campaign difficulties.";
 	} else if (launch.Stage < -1 || launch.Stage > 32767) {
@@ -196,7 +219,16 @@ std::string Spawn_INI(Launch const & launch)
 	}
 	Put(out, "IsSinglePlayer", "yes");
 	Put(out, "CampaignID", launch.Campaign);
-	Put(out, "Scenario", launch.Scenario);
+	if (!launch.Scenario.empty()) {
+		Put(out, "Scenario", launch.Scenario);
+	}
+	if (!launch.SaveGame.empty()) {
+		Put(out, "LoadSaveGame", "yes");
+		Put(out, "SaveGameName", launch.SaveGame);
+	}
+	if (launch.AutoSave > 0) {
+		Put(out, "AutoSaveGame", launch.AutoSave);
+	}
 	if (launch.Stage >= 0) {
 		Put(out, "CampaignStage", launch.Stage);
 	}

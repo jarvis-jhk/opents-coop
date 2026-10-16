@@ -190,6 +190,9 @@ class MultiplayerLoadOptionsClass : public LoadOptionsClass
 
 		MultiplayerLoadOptionsClass(void);
 
+		// Lists the saves of this kind of game rather than the running one's.
+		explicit MultiplayerLoadOptionsClass(GameType kind);
+
 		virtual bool Load_File(const char * file_name);
 		virtual bool Read_File(FileEntryClass * entry, WIN32_FIND_DATAA * ff);
 
@@ -199,5 +202,6 @@ class MultiplayerLoadOptionsClass : public LoadOptionsClass
 		virtual std::size_t Scan_Limit(void) const {return(LIST_LIMIT);}
 
 	private:
+		GameType Kind;
 		char Picked[32];
 };

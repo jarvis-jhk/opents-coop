@@ -373,8 +373,14 @@ static bool Spawner_Resume(bool & gameloaded)
 		return(Spawner_Refuse("Resuming a game arranged over the local network is not supported."));
 	}
 
+	bool const shared = SpawnConfig.Is_Shared_Resume();
+	if (shared != (type == GAME_NORMAL && SpawnConfig.HumanCount > 1)) {
+		return(Spawner_Refuse(shared ? "The saved game was not played as a shared campaign."
+			: "A shared campaign's save needs a launch file that names a campaign."));
+	}
+
 	// The file seats the same people again, so the network opens before the load.
-	if (type == GAME_INTERNET) {
+	if (type == GAME_INTERNET || shared) {
 		std::string fault;
 		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)) {
 			return(Spawner_Refuse("%s", fault.c_str()));
@@ -383,6 +389,7 @@ static bool Spawner_Resume(bool & gameloaded)
 		Clear_Vector(&Session.Players);
 		Clear_Vector(&Session.Computers);
 
+		Session.IsSharedHouse = shared;
 		Spawner_Seat_Local();
 		Spawner_Seat_Humans();
 
@@ -397,13 +404,14 @@ static bool Spawner_Resume(bool & gameloaded)
 		return(Spawner_Refuse("The saved game %s could not be loaded.", SpawnConfig.SaveGameName.c_str()));
 	}
 
-	if (type == GAME_INTERNET && !Reconcile_Players()) {
+	if ((type == GAME_INTERNET || shared) && !Reconcile_Players()) {
 		return(Spawner_Refuse("The saved game and the file do not agree on who is playing."));
 	}
 
-	// The save's options apply, except game speed, movies and this machine's waits.
+	// The save's options apply, except game speed, movies and this machine's waits. A shared
+	// campaign plays its movies, as its first launch did.
 	Options.GameSpeed = SpawnConfig.GameSpeed;
-	Session.PlayMovies = SpawnConfig.PlayMoviesInMultiplayer;
+	Session.PlayMovies = shared || SpawnConfig.PlayMoviesInMultiplayer;
 	Session.ConnTimeout = SpawnConfig.ConnTimeout;
 	Session.ReconnectTimeout = SpawnConfig.ReconnectTimeout;
 
@@ -563,6 +571,7 @@ bool Spawner_Continue_Shared_Campaign(char const * scenario, int stage, bool adv
 {
 	SpawnINI.Put_String("Settings", "Scenario", scenario);
 	SpawnINI.Put_Int("Settings", "CampaignStage", stage);
+	SpawnINI.Put_Bool("Settings", "LoadSaveGame", false);
 
 	if (advance) {
 		SpawnINI.Put_Int("Settings", "CarryOverMoney", Environment.CarryOverMoney);
