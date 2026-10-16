@@ -47,6 +47,12 @@ bool Name_Before(std::string const & left, std::string const & right)
 }
 
 
+bool Same_Seat(std::string const & left, std::string const & right)
+{
+	return(Same_Name(LobbyCampaign::Seat_Name(left), LobbyCampaign::Seat_Name(right)));
+}
+
+
 std::string Dotted(std::uint32_t ip)
 {
 	unsigned char quad[4];
@@ -92,12 +98,16 @@ bool Is_Save_Name(std::string const & name)
 
 
 /// <summary>
-/// Returns the name a seat carries in the launch file: the lobby name with every character the
-/// file format cannot hold in a value replaced by an underscore.
+/// Returns the name a seat carries in the launch file: the lobby name without surrounding spaces
+/// and tabs, with every character the file format cannot hold in a value replaced by an underscore.
 /// </summary>
 std::string Seat_Name(std::string const & name)
 {
-	std::string safe = name;
+	std::size_t const first = name.find_first_not_of(" \t");
+	if (first == std::string::npos) {
+		return(std::string());
+	}
+	std::string safe = name.substr(first, name.find_last_not_of(" \t") - first + 1);
 	for (char & c : safe) {
 		if (c == ';' || c == '\r' || c == '\n' || c == '[' || c == ']') {
 			c = '_';
@@ -115,12 +125,12 @@ std::vector<Seat> Seat_Order(Launch const & launch)
 {
 	std::vector<Seat> order = launch.Seats;
 	std::stable_sort(order.begin(), order.end(), [&launch](Seat const & left, Seat const & right) {
-		bool const left_host = Same_Name(left.Name, launch.Host);
-		bool const right_host = Same_Name(right.Name, launch.Host);
+		bool const left_host = Same_Seat(left.Name, launch.Host);
+		bool const right_host = Same_Seat(right.Name, launch.Host);
 		if (left_host != right_host) {
 			return(left_host);
 		}
-		return(Name_Before(left.Name, right.Name));
+		return(Name_Before(Seat_Name(left.Name), Seat_Name(right.Name)));
 	});
 	return(order);
 }
@@ -172,8 +182,8 @@ bool Is_Launchable(Launch const & launch, std::string & fault)
 			}
 		}
 
-		bool const is_local = Same_Name(seat.Name, launch.Local);
-		host = host || Same_Name(seat.Name, launch.Host);
+		bool const is_local = Same_Seat(seat.Name, launch.Local);
+		host = host || Same_Seat(seat.Name, launch.Host);
 		local = local || is_local;
 		if (!is_local && (seat.IP == 0 || seat.Port < 1 || seat.Port > 65535)) {
 			fault = "The address of " + name + " is unknown.";
@@ -206,11 +216,11 @@ std::string Spawn_INI(Launch const & launch)
 	}
 
 	std::vector<Seat> const order = Seat_Order(launch);
-	bool const is_host = Same_Name(launch.Local, launch.Host);
+	bool const is_host = Same_Seat(launch.Local, launch.Host);
 
 	std::string out = "[Settings]\n";
 	for (std::size_t index = 0; index < order.size(); index++) {
-		if (!Same_Name(order[index].Name, launch.Local)) {
+		if (!Same_Seat(order[index].Name, launch.Local)) {
 			continue;
 		}
 		Put(out, "Name", Seat_Name(order[index].Name));
@@ -246,7 +256,7 @@ std::string Spawn_INI(Launch const & launch)
 	int other = 1;
 	for (std::size_t index = 0; index < order.size(); index++) {
 		Seat const & seat = order[index];
-		if (Same_Name(seat.Name, launch.Local)) {
+		if (Same_Seat(seat.Name, launch.Local)) {
 			continue;
 		}
 		out += "\n[Other" + std::to_string(other++) + "]\n";

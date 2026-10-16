@@ -1250,6 +1250,36 @@ int main(void)
 		Check(!LobbyCampaign::Is_Launchable(bad, fault), "a lobby without a chosen campaign is refused");
 
 		Check(LobbyCampaign::Seat_Name("a;b[c]") == "a_b_c_", "a name keeps no character the file cannot hold");
+		Check(LobbyCampaign::Seat_Name(" \ta;b[c]\t ") == "a_b_c_", "a launch name has no surrounding whitespace");
+
+		bad = launch;
+		bad.Seats[0].Name = " \tALICE\t ";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault) && !fault.empty() && LobbyCampaign::Spawn_INI(bad).empty(),
+			"names that become equal in the launch file are refused before start");
+
+		bad = launch;
+		bad.Seats[0].Name = " \t ";
+		Check(!LobbyCampaign::Is_Launchable(bad, fault) && !fault.empty() && LobbyCampaign::Spawn_INI(bad).empty(),
+			"a whitespace-only lobby name is refused before start");
+
+		launch.Seats[0].Name = " \tbob\t ";
+		launch.Seats[1].Name = " Zed ";
+		launch.Seats[2].Name = "Alice Smith";
+		launch.Host = launch.Seats[1].Name;
+		seated = true;
+		for (int machine = 0; machine < 3; machine++) {
+			launch.Local = launch.Seats[machine].Name;
+			std::string const text = LobbyCampaign::Spawn_INI(launch);
+			SpawnerConfigClass config = Read(text.c_str(), (int)text.size());
+			identity[machine] = config.Session_Identity_CRC();
+			seated = seated && LobbyCampaign::Is_Launchable(launch, fault)
+				&& config.Is_Playable(2, 8, fault) && config.HumanCount == 3
+				&& config.Slots[config.LocalSlot].Name == LobbyCampaign::Seat_Name(launch.Local)
+				&& config.Slots[0].Name == "Zed" && config.Slots[1].Name == "Alice Smith" && config.Slots[2].Name == "bob"
+				&& config.IsHost == (machine == 1);
+		}
+		Check(seated, "padded names and internal spaces survive every machine's launch-file read");
+		Check(identity[0] == identity[1] && identity[1] == identity[2], "padded lobby names still describe one match");
 	}
 
 	/*
