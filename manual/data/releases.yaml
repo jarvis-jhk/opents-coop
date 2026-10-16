@@ -21,4 +21,7 @@ releases:
     status: released
     date: '2026-10-16'
   - version: 0.8.0
+    status: released
+    date: '2026-10-16'
+  - version: 0.9.0
     status: development
