@@ -214,11 +214,42 @@ std::vector<std::string> Parse_Search_Folders(char const * list)
 }
 
 
+/*
+ * The environment variable the Warpzone launcher sets to the Tiberian Sun folder it found.
+ */
+static char const * const LauncherDataVariable = "WARPZONE_DATA_TIBSUN";
+
+
+// A folder the launcher names but that is not there is ignored, so the game still starts with its own data.
+static void Use_Launcher_Data_Directory(void)
+{
+	char path[MAX_PATH];
+	DWORD length = GetEnvironmentVariable(LauncherDataVariable, path, sizeof(path));
+	if (length == 0 || length >= sizeof(path)) {
+		return;
+	}
+
+	std::string const directory = Terminate_Path(Trim_Path(path));
+	if (directory.empty()) {
+		return;
+	}
+
+	if (!Is_Directory(directory)) {
+		DebugString("[GameDirs] Ignoring %s=%s, which is not a directory.\n", LauncherDataVariable, path);
+		return;
+	}
+
+	DataDirectory = directory;
+	DebugString("[GameDirs] Using the game data the launcher found in %s.\n", directory.c_str());
+}
+
+
 /// <summary>
 /// Makes the directories the command line named usable.
 /// The user directory is created when it is not there yet, because it is the game's own to
 /// write. A named data directory must already exist, a missing one being reported here
-/// rather than as the missing files it would become later.
+/// rather than as the missing files it would become later. Without `-DATADIR`, an existing
+/// folder in `WARPZONE_DATA_TIBSUN` becomes the data directory.
 /// </summary>
 /// <returns>bool; Can the game run with the directories it was given?</returns>
 bool Apply_Game_Directories(void)
@@ -230,6 +261,10 @@ bool Apply_Game_Directories(void)
 		}
 
 		DebugString("[GameDirs] User directory is %s.\n", UserDirectory.c_str());
+	}
+
+	if (DataDirectory.empty()) {
+		Use_Launcher_Data_Directory();
 	}
 
 	if (!DataDirectory.empty()) {

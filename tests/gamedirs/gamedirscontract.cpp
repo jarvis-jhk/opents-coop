@@ -122,6 +122,7 @@ void Reset(void)
 	CDFileClass::Clear_Search_Drives();
 	Set_Data_Directory("");
 	Set_User_Directory("");
+	SetEnvironmentVariable("WARPZONE_DATA_TIBSUN", NULL);
 	SetCurrentDirectory(Root.c_str());
 }
 
@@ -202,6 +203,31 @@ void Test_Data_Directory(void)
 	Reset();
 	Set_Data_Directory((Root + "\\Missing").c_str());
 	Check(!Apply_Game_Directories(), "a data directory that is not there is refused");
+}
+
+
+void Test_Launcher_Data_Directory(void)
+{
+	Reset();
+	SetEnvironmentVariable("WARPZONE_DATA_TIBSUN", (Root + "\\Data").c_str());
+
+	Check(Apply_Game_Directories(), "the folder the launcher found is accepted");
+	Check(Data_Directory() == Root + "\\Data\\", "the folder the launcher found becomes the data directory");
+	Check(CDFileClass::Search_Path(0) != NULL && std::string(CDFileClass::Search_Path(0)) == Root + "\\Data\\",
+		"the folder the launcher found is searched");
+
+	Reset();
+	SetEnvironmentVariable("WARPZONE_DATA_TIBSUN", (Root + "\\Data").c_str());
+	Set_Data_Directory((Root + "\\User").c_str());
+
+	Check(Apply_Game_Directories(), "a data directory on the command line is accepted beside the launcher's");
+	Check(Data_Directory() == Root + "\\User\\", "a data directory on the command line wins over the launcher's");
+
+	Reset();
+	SetEnvironmentVariable("WARPZONE_DATA_TIBSUN", (Root + "\\Missing").c_str());
+
+	Check(Apply_Game_Directories(), "a launcher folder that is not there does not stop startup");
+	Check(Data_Directory().empty(), "a launcher folder that is not there is ignored");
 }
 
 
@@ -629,6 +655,7 @@ int main(void)
 	Test_Defaults();
 	Test_Configured_Folders();
 	Test_Data_Directory();
+	Test_Launcher_Data_Directory();
 	Test_User_Directory();
 	Test_Search_Files();
 	Test_Writes_Do_Not_Search();
