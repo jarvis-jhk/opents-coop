@@ -2979,7 +2979,7 @@ static void Select_Team_Members(int team)
 {
 	for (int i = 0; i < Technos.Count(); i++) {
 		TechnoClass * obj = Technos[i];
-		if (obj && !obj->IsInLimbo && Hotkey_Group(obj) == team - 1 && obj->House->Is_Player_Control()) {
+		if (obj && !obj->IsInLimbo && Hotkey_Group(obj) == team - 1 && Is_Local_Force(obj->House)) {
 			if (!obj->IsSelected) {
 				obj->Select();
 				AllowVoice = false;
@@ -2991,6 +2991,19 @@ static void Select_Team_Members(int team)
 
 static void Assign_Selection_To_Team(int team)
 {
+	if (Session.IsSharedHouse) {
+		OutList.push_back(EventClass(Session.Local_Seat_ID(), TargetClass(), team - 1));
+		for (int i = 0; i < CurrentObject.Count(); i++) {
+			if (CurrentObject[i] == NULL || !CurrentObject[i]->Is_Techno()) {
+				continue;
+			}
+			TechnoClass * obj = (TechnoClass *)CurrentObject[i];
+			if (!obj->IsInLimbo && Is_Local_Force(obj->House)) {
+				OutList.push_back(EventClass(Session.Local_Seat_ID(), TargetClass(obj), team - 1));
+			}
+		}
+		return;
+	}
 	for (int i = 0; i < Technos.Count(); i++) {
 		TechnoClass * obj = Technos[i];
 		if (obj && !obj->IsInLimbo && obj->House->Is_Player_Control()) {

@@ -196,6 +196,13 @@ namespace {
 			case EventClass::ARCHIVE:
 				return(event.Data.NavCom.Whom.As_Techno());
 
+			case EventClass::GROUP:
+				if (event.Data.Group.Whom.Is_Valid()) {
+					return(event.Data.Group.Whom.As_Techno());
+				}
+				requires_ownership = false;
+				return(NULL);
+
 			case EventClass::MEGAMISSION:
 			case EventClass::MEGAMISSION_F:
 				return(event.Data.MegaMission.Whom.As_Techno());
@@ -264,6 +271,29 @@ EventClass::EventClass(int index, unsigned char type, TargetClass target)
 		ID = index;
 		Type = type;
 		Data.Target.Whom = target;
+		Frame = ::Frame;
+	} else {
+		ID = -1;
+		Type = EMPTY;
+		Frame = ::Frame;
+	}
+}
+
+
+/// <summary>
+/// Constructs a GROUP event, which puts an object in a shared campaign's control group, or
+/// with no object removes every object the sender controls from that group.
+/// </summary>
+/// <param name="index">The seat of the player originating this event.</param>
+/// <param name="whom">The object to put in the group, or none.</param>
+/// <param name="group">The control group, 0 for the key 1.</param>
+EventClass::EventClass(int index, TargetClass whom, int group)
+{
+	if (index >= 0) {
+		ID = index;
+		Type = GROUP;
+		Data.Group.Whom = whom;
+		Data.Group.Number = group;
 		Frame = ::Frame;
 	} else {
 		ID = -1;
@@ -1127,6 +1157,24 @@ void EventClass::Execute(void)
 		case FORCE:
 			if (Session.IsSharedHouse) {
 				Session.Set_Seat_Force(ID, Data.General.Value);
+			}
+			break;
+
+		case GROUP:
+			if (Session.IsSharedHouse && Data.Group.Number >= 0 && Data.Group.Number < 10) {
+				if (Data.Group.Whom.Is_Valid()) {
+					techno = Data.Group.Whom.As_Techno();
+					if (techno != NULL) {
+						techno->Group = Data.Group.Number;
+					}
+					break;
+				}
+				for (i = 0; i < Technos.Count(); i++) {
+					TechnoClass * member = Technos[i];
+					if (member != NULL && !member->IsInLimbo && member->Group == Data.Group.Number && Session.Seat_Controls(ID, member->House)) {
+						member->Group = -1;
+					}
+				}
 			}
 			break;
 

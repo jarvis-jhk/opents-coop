@@ -24,16 +24,17 @@ static std::unordered_map<int, int> LocalGroups;
 
 /// <summary>
 /// Returns the hotkey group the player at this machine put an object in, or -1 for none. A
-/// game played alone keeps it in the object's Group, which the mission's triggers and teams
-/// also read. A networked game keeps it at this machine only, because the other machines
-/// never learn of it and Group is part of the game they compare.
+/// game played alone and a shared campaign keep it in the object's Group, which the mission's
+/// triggers and teams also read; a shared campaign changes it only through GROUP events. Any
+/// other networked game keeps it at this machine only, because the other machines never learn
+/// of it and Group is part of the game they compare.
 /// </summary>
 int Hotkey_Group(TechnoClass const * object)
 {
 	if (object == NULL) {
 		return(-1);
 	}
-	if (!Session.Is_Networked()) {
+	if (!Session.Is_Networked() || Session.IsSharedHouse) {
 		return(object->Group);
 	}
 	auto found = LocalGroups.find(object->Fetch_ID());
@@ -42,11 +43,12 @@ int Hotkey_Group(TechnoClass const * object)
 
 
 /// <summary>
-/// Puts an object in a hotkey group, or in none for -1, where Hotkey_Group reads it.
+/// Puts an object in a hotkey group, or in none for -1, where Hotkey_Group reads it. A shared
+/// campaign ignores the call, because its groups change only through GROUP events.
 /// </summary>
 void Set_Hotkey_Group(TechnoClass * object, int group)
 {
-	if (object == NULL) {
+	if (object == NULL || Session.IsSharedHouse) {
 		return;
 	}
 	if (!Session.Is_Networked()) {

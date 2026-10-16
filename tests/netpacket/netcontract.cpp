@@ -154,7 +154,7 @@ void Test_Reader(void)
 void Test_Event_Contract(void)
 {
 	Check(EventClass::LATENCYFUDGE == 35, "the last inherited event keeps numeric ID 35");
-	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::SELECTED == 38 && EventClass::FORCE == 39 && EventClass::LAST_EVENT == 40, "new events append without renumbering inherited events");
+	Check(EventClass::NETWORK_REPORT == 36 && EventClass::ABANDON_COUNT == 37 && EventClass::SELECTED == 38 && EventClass::FORCE == 39 && EventClass::GROUP == 40 && EventClass::LAST_EVENT == 41, "new events append without renumbering inherited events");
 	Check(EventClass::EventLength[EventClass::NETWORK_REPORT] == sizeof(NetworkReportType) && sizeof(NetworkReportType) == 6, "NETWORK_REPORT uses its six-byte payload");
 	Check(std::strcmp(EventClass::EventNames[EventClass::NETWORK_REPORT], "NETWORK_REPORT") == 0, "NETWORK_REPORT has a diagnostic name");
 	Check(EventClass::EventLength[EventClass::ABANDON_COUNT] == sizeof(AbandonCountType) && sizeof(AbandonCountType) == 12, "ABANDON_COUNT uses its twelve-byte payload");
@@ -163,6 +163,8 @@ void Test_Event_Contract(void)
 	Check(std::strcmp(EventClass::EventNames[EventClass::SELECTED], "SELECTED") == 0, "SELECTED has a diagnostic name");
 	Check(EventClass::EventLength[EventClass::FORCE] == sizeof(int), "FORCE carries one house index");
 	Check(std::strcmp(EventClass::EventNames[EventClass::FORCE], "FORCE") == 0, "FORCE has a diagnostic name");
+	Check(EventClass::EventLength[EventClass::GROUP] == sizeof(TargetClass) + sizeof(int), "GROUP carries one target and a group number");
+	Check(std::strcmp(EventClass::EventNames[EventClass::GROUP], "GROUP") == 0, "GROUP has a diagnostic name");
 	Check(EventClass::NETWORK_RTT_UNAVAILABLE == UINT16_MAX, "the unavailable RTT sentinel is uint16 max");
 	Check(sizeof(EventClass) == 46 && EnvelopeSize == 17, "the report fits without changing full or envelope event layouts");
 }

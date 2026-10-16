@@ -113,6 +113,7 @@ class EventClass
 			ABANDON_COUNT,
 			SELECTED,			// a player selected an object, which springs its selection trigger
 			FORCE,				// a player's later production and placement orders act for this force
+			GROUP,				// a shared-campaign player put an object in a control group, or emptied one
 
 			LAST_EVENT,			// one past the last event
 		};
@@ -177,6 +178,10 @@ class EventClass
 				xTargetClass	Whom;   // Whom to apply mission to.
 				MissionType Mission;    // What mission to apply.
 			} Mission;
+			struct {
+				xTargetClass	Whom;	// The object to put in the group, or none to empty the group.
+				int			Number;	// The control group, 0 for the key 1.
+			} Group;
 			struct {
 				xTargetClass	Whom;   // Whom to apply movement change to.
 				xTargetClass	Where;  // Where to set NavCom to.
@@ -260,6 +265,7 @@ class EventClass
 		EventClass(void) {Type = EMPTY;};
 		EventClass(int index, SpecialClass data);
 		EventClass(int index, unsigned char type, TargetClass target);
+		EventClass(int index, TargetClass whom, int group);
 		EventClass(int index, unsigned char type);
 		EventClass(int index, unsigned char type, int val);
 		EventClass(int index, unsigned char type, Cell const & cell);

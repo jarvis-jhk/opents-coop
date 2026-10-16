@@ -61,6 +61,7 @@ unsigned char EventClass::EventLength[EventClass::LAST_EVENT] = {
 	size_of(EventClass, Data.AbandonCount),          // ABANDON_COUNT
 	size_of(EventClass, Data.Target),                // SELECTED
 	size_of(EventClass, Data.General),               // FORCE
+	size_of(EventClass, Data.Group),                 // GROUP
 };
 
 char const * EventClass::EventNames[EventClass::LAST_EVENT] = {
@@ -104,4 +105,5 @@ char const * EventClass::EventNames[EventClass::LAST_EVENT] = {
 	"ABANDON_COUNT",
 	"SELECTED",
 	"FORCE",
+	"GROUP",
 };
