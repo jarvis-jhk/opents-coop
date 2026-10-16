@@ -71,7 +71,7 @@ The file must pass the same checks as a [new match](#when-something-is-wrong), a
 
 A person who played in the save but is left out of the file keeps their house, and the computer plays it. Before play resumes, the machines compare the games they loaded and stop with `Scenarios don't match.` if they differ.
 
-A [shared-house campaign](#a-shared-house-campaign) resumes from a file that also sets `IsSinglePlayer=yes` and names at least one `[OtherN]` player. Its save restores the mission, the forces and the control matrix, and each person takes back the seat saved under their name. The launch is refused when the save was not made in a shared campaign, when a shared campaign's save is resumed from a file without `IsSinglePlayer=yes`, or when the people the file seats are not exactly the save's players. Shared campaigns have no computer takeover, so every player must return.
+A [shared-house campaign](#a-shared-house-campaign) resumes from a file that also sets `IsSinglePlayer=yes` and names at least one `[OtherN]` player. Its save restores the mission, the forces and the control matrix, and each person takes back the seat saved under their name. The launch is refused when the save was not made in a shared campaign, when a shared campaign's save is resumed from a file without `IsSinglePlayer=yes`, or when the people the file seats are not exactly the save's players. Shared campaigns have no computer takeover, so every player must return. The next mission takes its campaign and difficulty pair from the resumed game. A mission replayed after a loss starts with the global flags it began with, but without the money carried into it.
 
 ## A campaign mission
 

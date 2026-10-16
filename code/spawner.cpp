@@ -573,10 +573,21 @@ bool Spawner_Continue_Shared_Campaign(char const * scenario, int stage, bool adv
 	SpawnINI.Put_Int("Settings", "CampaignStage", stage);
 	SpawnINI.Put_Bool("Settings", "LoadSaveGame", false);
 
+	// A resume file need not name the campaign or its difficulty, so the game in play does.
+	SpawnINI.Put_Int("Settings", "CampaignID", Scen->Campaign);
+	SpawnINI.Put_Int("Settings", "DifficultyModeHuman", Session.CampaignDifficulty);
+	SpawnINI.Put_Int("Settings", "DifficultyModeComputer", Session.CampaignCDifficulty);
+
 	if (advance) {
 		SpawnINI.Put_Int("Settings", "CarryOverMoney", Environment.CarryOverMoney);
 		SpawnINI.Put_Int("Settings", "CarryOverTimer", Environment.MissionTimer);
 		SpawnINI.Put_Int("Settings", "Seed", static_cast<int>(static_cast<unsigned int>(SpawnConfig.Seed) + 1u));
+		for (int index = 0; index < SpawnerConfigClass::GLOBAL_FLAG_COUNT; index++) {
+			std::string const entry = "GlobalFlag" + std::to_string(index);
+			SpawnINI.Put_Bool("GlobalFlags", entry.c_str(), Environment.Globals[index]);
+		}
+	} else if (SpawnConfig.LoadSaveGame) {
+		// A resume file carries no flags, so a replay takes the ones the save's mission began with.
 		for (int index = 0; index < SpawnerConfigClass::GLOBAL_FLAG_COUNT; index++) {
 			std::string const entry = "GlobalFlag" + std::to_string(index);
 			SpawnINI.Put_Bool("GlobalFlags", entry.c_str(), Environment.Globals[index]);
