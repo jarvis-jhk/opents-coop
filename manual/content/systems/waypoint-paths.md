@@ -20,6 +20,8 @@ A waypoint path is a numbered list of waypoints, each marking one cell. The play
 
 Paths exist only on the machine of the player who plotted them, and other players never see them. A saved game keeps them.
 
+In a campaign with several forces, each force has its own twelve paths, and waypoint mode edits the paths of the force shown on the sidebar. A click on a waypoint sends only the selected objects of that force along the path. Each other selected object gets the order a click on that cell would give it without a path. In a shared-house campaign, each player plots their own paths for the forces they control.
+
 ## Plotting a path
 
 Waypoint mode starts in one of two ways:
@@ -95,6 +97,7 @@ An object leaves its path in two ways:
 
 - It cannot carry out the order at a waypoint.
 - The player gives it an order on a cell without a waypoint.
+- In a [shared-house campaign](/formats/spawn-ini/#a-shared-house-campaign), another player gives it any order. The object then follows that player's order, or that player's path.
 
 An object patrolling the path breaks off to fight threats it finds between waypoints, then resumes its travel.
 

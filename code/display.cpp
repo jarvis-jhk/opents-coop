@@ -2571,10 +2571,6 @@ void DisplayClass::Sell_Mode_Control(int control)
 /// started?</param>
 void DisplayClass::Waypoint_Mode_Control(int control, bool edit_selected_path)
 {
-	if (Session.IsSharedHouse && control != 0) {
-		return;
-	}
-
 	bool mode = IsWaypointMode;
 	switch (control) {
 		case 0:
@@ -3812,7 +3808,9 @@ void DisplayClass::Active_Click(ObjectClass * object, Cell cell, ActionType acti
 	}
 
 	for (index = 0; index < CurrentObject.Count(); index++) {
-		CurrentObject[index]->Set_Waypoint_Path(waypoint_path, waypoint_id);
+		// An object follows only its own force's paths, so the shown force's path cannot apply to another force.
+		bool const follows = Waypoint_House(CurrentObject[index]->Owner_HouseClass()) == PlayerPtr;
+		CurrentObject[index]->Set_Waypoint_Path(follows ? waypoint_path : PATH_NONE, follows ? waypoint_id : 0);
 		if (CurrentObject[index]->Is_Foot()) {
 			((TechnoClass *)CurrentObject[index])->IsOnPatrol = false;
 		}

@@ -99,7 +99,7 @@ After a win, the host selects the next mission from the map-selection screen or 
 
 A shared campaign saves like a game against other machines: every machine writes the same [numbered save](/formats/save-games/#numbered-multiplayer-saves) at the same frame, when a player picks **Save Game** in the options menu or every `AutoSaveGame` frames. Quick saves stay off. Each mission's launch deletes the saves of the mission before it, so only the current mission can be resumed. The host can [load one of those saves during play](/formats/save-games/#loading-during-a-match) or [resume it in a new launch](#resuming-a-saved-game).
 
-Shared campaigns disable waypoint editing. Hotkey groups remain local to each player and do not change the mission’s script groups. A mission requesting dropship loadout selection is refused because that choice is not synchronized. Leaving ends that player's participation; surrender loses the mission for the shared house.
+Each player plots their own [waypoint paths](/systems/waypoint-paths/), which the other players do not see. Hotkey groups remain local to each player and do not change the mission’s script groups. A mission requesting dropship loadout selection is refused because that choice is not synchronized. Leaving ends that player's participation; surrender loses the mission for the shared house.
 
 ## A shared campaign from the network lobby
 

@@ -1004,6 +1004,11 @@ void EventClass::Execute(void)
 			techno = Data.MegaMission.Whom.As_Techno();
 			if (techno != NULL && techno->IsActive && techno->Strength > 0 && !techno->IsInLimbo) {
 
+				// A path lives on the machine that assigned it, so another player's order ends it here.
+				if (Session.IsSharedHouse && ID != Session.Local_Seat_ID()) {
+					techno->Set_Waypoint_Path(PATH_NONE, 0);
+				}
+
 				/*
 				**	Fetch a pointer to the object of the mission. If there is an error with
 				**	this object, such as it is dead, then bail.

@@ -3884,10 +3884,10 @@ bool FootClass::Should_Delete_Off_Map(void)
 /// <param name="index">The waypoint within the path to head for first.</param>
 void FootClass::Set_Waypoint_Path(PathType path, char index)
 {
-	if (path != PATH_NONE) {
+	WaypointClass * wpc = (path != PATH_NONE) ? Waypoint_House(House)->Ensure_Path(path)->Get_Waypoint(index) : NULL;
+	if (wpc != NULL) {
 		CurrentPath = path;
 		NextWaypoint = index;
-		WaypointClass *wpc = Waypoint_House(House)->Paths[path]->Get_Waypoint(index);
 		WaypointTargetCell = wpc->Location.As_Cell();
 	} else {
 		CurrentPath = PATH_NONE;

@@ -75,7 +75,7 @@ Start every machine before choosing the version. Set the matrix and accept it; t
 
 ## Runtime limits
 
-Shared campaigns disable quick saves and waypoint edits. A save can be resumed only by all of its players. They refuse missions requesting dropship loadout selection. The stock campaign includes such missions, so this remains a partial campaign implementation. Full campaign completion and real LAN play require separate testing; consult [validation evidence](COOP_VALIDATION.md) for the earlier shared-house baseline.
+Shared campaigns disable quick saves. Each player plots their own waypoint paths; the other players do not see them, and an order from another player takes a unit off its path. A save can be resumed only by all of its players. They refuse missions requesting dropship loadout selection. The stock campaign includes such missions, so this remains a partial campaign implementation. Full campaign completion and real LAN play require separate testing; consult [validation evidence](COOP_VALIDATION.md) for the earlier shared-house baseline.
 
 The engine writes crash reports locally. `tools/co-op/watch-crashes.py` can watch a user directory and forward faults to a privately configured endpoint; keep endpoint credentials outside this public repository. Installing the engine alone does not enable remote reporting.
 
