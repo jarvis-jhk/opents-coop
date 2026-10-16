@@ -172,6 +172,7 @@ enum NetCommandType {
 	NET_SHARED_MISSION,			// The master names the mission a shared house campaign plays next.
 	NET_SHARED_SETUP,			// The master names the mission version and who controls which force.
 	NET_LOBBY_CAMPAIGN,			// The lobby host names the campaign mission the game starts, or none.
+	NET_SHARED_LOADOUT,			// The master names the units a shared campaign's dropships carry.
 };
 
 //---------------------------------------------------------------------------
@@ -408,6 +409,16 @@ struct GlobalPacketType {
 			char Scenario[64];
 			unsigned char Control[8];
 		} SharedSetup;
+
+		/*
+		 * This names the units of a shared campaign's three dropship loadouts, five slots each in
+		 * order, by type kind and index; an empty slot has kind RTTI_NONE. It accompanies the
+		 * NET_SHARED_LOADOUT command.
+		 */
+		struct {
+			unsigned char Kind[15];
+			short ID[15];
+		} SharedLoadout;
 
 		/*
 		 * This names the campaign mission a local network lobby starts, with its difficulty,

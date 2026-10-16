@@ -17,6 +17,7 @@
 struct GlobalPacketType;
 
 
+bool Shared_Campaign_Loadout(void);
 bool Shared_Campaign_Next(bool won);
 void Shared_Campaign_Receive(GlobalPacketType const & packet);
 bool Shared_Campaign_Setup(std::string & scenario, ForceControl::Matrix & control);

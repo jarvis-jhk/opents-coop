@@ -112,6 +112,7 @@ namespace NetGlobal
 			case NET_LOAD_GAME:
 			case NET_SHARED_MISSION:
 			case NET_SHARED_SETUP:
+			case NET_SHARED_LOADOUT:
 				return(true);
 
 			default:
@@ -196,6 +197,12 @@ namespace NetGlobal
 				}
 				if (!Has_Terminator(packet.SharedSetup.Scenario, sizeof(packet.SharedSetup.Scenario))) {
 					return(DecodeError::UNTERMINATED_NAME);
+				}
+				break;
+
+			case NET_SHARED_LOADOUT:
+				if (!Sender_Is_Master(context)) {
+					return(DecodeError::SENDER_NOT_MASTER);
 				}
 				break;
 

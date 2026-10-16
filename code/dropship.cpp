@@ -21,6 +21,7 @@
 #include "_zbuffer.h"
 #include "bsurface.h"
 #include "ccfile.h"
+#include "campaignforces.h"
 #include "ccrand.h"
 #include "conquer.h"
 #include "convert.h"
@@ -272,8 +273,9 @@ void Dropship_Screen(void)
 	int j;
 	int k;
 
+	HouseClass * player = Campaign_Player();
 	int dropship_count = Scen->StartingDropships;
-	int money = PlayerPtr->Available_Money();
+	int money = player->Available_Money();
 	unsigned int money_display = 0;
 
 	static const char *_drop_btn_names[] = {
@@ -459,7 +461,7 @@ void Dropship_Screen(void)
 	DynamicVectorClass<TechnoTypeClass *> candidates;
 	int type_count = InfantryTypes.Count() + UnitTypes.Count();
 
-	unsigned int ownable_mask = 1 << HouseTypes.ID(PlayerPtr->Class);
+	unsigned int ownable_mask = 1 << HouseTypes.ID(player->Class);
 
 	if (Scen->AllowableUnits.Count() > 0) {
 		for (i = 0; i < Scen->AllowableUnits.Count(); ++i) {
@@ -477,7 +479,7 @@ void Dropship_Screen(void)
 				techtype = UnitTypes[k - InfantryTypes.Count()];
 			}
 
-			if ((int)techtype->Level > PlayerPtr->Control.TechLevel) {
+			if ((int)techtype->Level > player->Control.TechLevel) {
 				continue;
 			}
 			if (techtype->Fetch_RTTI() == RTTI_INFANTRYTYPE && techtype->Category == CATEGORY_CIVILIAN) {
@@ -1021,7 +1023,7 @@ void Dropship_Screen(void)
 	}
 
 	for (i = 0; i < selections.Count(); ++i) {
-		PlayerPtr->DropshipLoadouts[i / SLOT_PER_DROPSHIP].Add(selections[i]);
+		player->DropshipLoadouts[i / SLOT_PER_DROPSHIP].Add(selections[i]);
 	}
 
 	delete drawer_dropship;

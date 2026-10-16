@@ -916,6 +916,16 @@ void Test_Global_Packets(void)
 	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::UNTERMINATED_NAME,
 		"a mission version choice requires a terminated scenario name");
 
+	packet = Global_Packet(NET_SHARED_LOADOUT);
+	packet.SharedLoadout.Kind[0] = 1;
+	packet.SharedLoadout.ID[0] = 2;
+	Check_Global_Error(packet, packet_size, outsider, NetGlobal::DecodeError::SENDER_NOT_MEMBER,
+		"dropship loadouts require a session member");
+	Check_Global_Error(packet, packet_size, guest, NetGlobal::DecodeError::SENDER_NOT_MASTER,
+		"dropship loadouts require the master");
+	Check_Global_Error(packet, packet_size, master, NetGlobal::DecodeError::NONE,
+		"the master may name the dropship loadouts");
+
 	NetGlobal::RejectionCounters counters;
 	NetGlobal::RejectionRecord first = counters.Record(NetGlobal::DecodeError::INVALID_LENGTH);
 	NetGlobal::RejectionRecord second = counters.Record(NetGlobal::DecodeError::INVALID_LENGTH);

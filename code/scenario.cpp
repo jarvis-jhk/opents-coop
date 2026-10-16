@@ -430,10 +430,12 @@ bool Start_Scenario(char const * name, bool briefing, CampaignType campaign)
 
 	if (Scen->StartingDropships > 0) {
 		if (Session.IsSharedHouse) {
-			WWMessageBox().Process("Shared campaigns do not support dropship loadout selection yet.", TXT_OK);
-			return(false);
+			if (!Shared_Campaign_Loadout()) {
+				return(false);
+			}
+		} else {
+			Dropship_Screen();
 		}
-		Dropship_Screen();
 	}
 
 	if (briefing) {

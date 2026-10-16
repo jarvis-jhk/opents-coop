@@ -713,6 +713,7 @@ void IPX_Call_Back(void)
 
 						case NET_SHARED_MISSION:
 						case NET_SHARED_SETUP:
+						case NET_SHARED_LOADOUT:
 							Shared_Campaign_Receive(Session.GPacket);
 							break;
 

@@ -15,9 +15,11 @@
 #include "_keyboar.h"
 #include "_surface.h"
 #include "_xmouse.h"
+#include "campaignforces.h"
 #include "conquer.h"
 #include "dbgprint.h"
 #include "dialog.h"
+#include "dropship.h"
 #include "enviro.h"
 #include "gscreen.h"
 #include "house.h"
@@ -34,6 +36,7 @@
 #include "spawner.h"
 #include "stimer.h"
 #include "surface.h"
+#include "techtype.h"
 
 #include <cstdio>
 #include <cstring>
@@ -49,6 +52,11 @@ namespace {
 	bool ReceivedSetup = false;
 	char SetupScenario[64] = "";
 	unsigned char SetupControl[8] = {};
+
+	// The master's dropship loadouts. They can arrive while this machine still loads.
+	bool ReceivedLoadout = false;
+	unsigned char LoadoutKind[15] = {};
+	short LoadoutID[15] = {};
 }
 
 
@@ -65,6 +73,13 @@ void Shared_Campaign_Receive(GlobalPacketType const & packet)
 		std::snprintf(SetupScenario, sizeof(SetupScenario), "%s", packet.SharedSetup.Scenario);
 		std::memcpy(SetupControl, packet.SharedSetup.Control, sizeof(SetupControl));
 		DebugString("Shared campaign: the master names version %s\n", SetupScenario);
+		return;
+	}
+	if (packet.Command == NET_SHARED_LOADOUT) {
+		ReceivedLoadout = true;
+		std::memcpy(LoadoutKind, packet.SharedLoadout.Kind, sizeof(LoadoutKind));
+		std::memcpy(LoadoutID, packet.SharedLoadout.ID, sizeof(LoadoutID));
+		DebugString("Shared campaign: the master names the dropship loadouts\n");
 		return;
 	}
 	Received = true;
@@ -252,4 +267,45 @@ bool Shared_Campaign_Setup(std::string & scenario, ForceControl::Matrix & contro
 	scenario = SetupScenario;
 	std::memcpy(control.data(), SetupControl, sizeof(SetupControl));
 	return(!scenario.empty());
+}
+
+
+/// <summary>
+/// Fills the dropship loadouts of a shared campaign's mission before it starts. The master
+/// fills them on the dropship loadout screen and names them to every other machine; each other
+/// machine waits for them and loads the same units into the campaign player's loadouts.
+/// </summary>
+/// <returns>bool; Were the loadouts agreed? False when this player left or the master never
+/// named them.</returns>
+bool Shared_Campaign_Loadout(void)
+{
+	HouseClass * house = Campaign_Player();
+	int const slots = ARRAY_SIZE(LoadoutKind) / ARRAY_SIZE(house->DropshipLoadouts);
+
+	if (Session.Local_Seat_ID() == Session.Master_Player_ID()) {
+		Dropship_Screen();
+
+		GlobalPacketType packet{};
+		NetGlobal::Initialize_Packet(packet, NET_SHARED_LOADOUT);
+		for (int index = 0; index < ARRAY_SIZE(LoadoutKind); index++) {
+			TechnoTypeClass const * type = house->DropshipLoadouts[index / slots].Fetch(index % slots);
+			packet.SharedLoadout.Kind[index] = (unsigned char)(type != NULL ? type->Fetch_RTTI() : RTTI_NONE);
+			packet.SharedLoadout.ID[index] = (short)(type != NULL ? type->Fetch_Heap_ID() : -1);
+		}
+		Shared_Campaign_Broadcast(packet);
+		DebugString("Shared campaign: named the dropship loadouts to the others\n");
+		return(true);
+	}
+
+	if (!Shared_Campaign_Wait(ReceivedLoadout, false)) {
+		return(false);
+	}
+	ReceivedLoadout = false;
+	for (int index = 0; index < ARRAY_SIZE(LoadoutKind); index++) {
+		TechnoTypeClass const * type = Fetch_Techno_Type((RTTIType)LoadoutKind[index], LoadoutID[index]);
+		if (type != NULL) {
+			house->DropshipLoadouts[index / slots].Add(const_cast<TechnoTypeClass *>(type));
+		}
+	}
+	return(true);
 }
