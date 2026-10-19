@@ -2185,9 +2185,11 @@ void BuildingClass::Do_Destruction(TechnoClass *last_contact, TechnoClass *sourc
 		Map[coord].Place_Tiberium((TiberiumType)slot, 1);
 	}
 
-	shakes = Class->Cost_Of(House) / Rule->ShakeScreen;
-	if (shakes > 0) {
-		Shake_The_Screen(shakes);
+	if (Rule->ShakeScreen > 0) {
+		shakes = Class->Cost_Of(House) / Rule->ShakeScreen;
+		if (shakes > 0) {
+			Shake_The_Screen(shakes);
+		}
 	}
 
 	if (Mission == MISSION_DECONSTRUCTION || Class->IsExploding) {
@@ -2767,7 +2769,7 @@ void BuildingClass::Assign_Target(AbstractClass * target)
 			target = NULL;
 			BASECLASS::Assign_Target(target);
 			if (Class->IsTickTank || Class->IsArtillary || Class->IsJuggernaut) {
-				if (!House->Is_Human_Player() && !Is_Immobilized()) {
+				if (!House->Is_Human_Player() && !Is_Immobilized() && Class->UndeploysInto != NULL) {
 					Assign_Mission(MISSION_DECONSTRUCTION);
 					Commence();
 				}
@@ -5182,6 +5184,7 @@ int BuildingClass::Do_MISSION_DECONSTRUCTION(void)
 							**	map, then give the player some money to compensate.
 							*/
 							House->Refund_Money(money);
+							delete unit;
 						}
 					} else {
 						House->Refund_Money(Refund_Amount());
@@ -7991,7 +7994,7 @@ void BuildingClass::Detach_Anim(AnimClass * anim)
 				Anims[i] = NULL;
 				if (i == BANIM_SPECIAL_ONE && Class->IsCanUnitRepair) {
 					if (In_Radio_Contact() && Mission == MISSION_REPAIR) {
-						Begin_Anim(BANIM_SPECIAL_TWO, false);
+						Begin_Anim(BANIM_SPECIAL_TWO, HealthRatio <= Rule->ConditionYellow);
 					}
 				}
 				break;
@@ -10228,6 +10231,28 @@ SuperWeaponType BuildingClass::Fetch_Super_Weapon2(void) const
 		}
 	}
 	return(Class->SuperWeapon2);
+}
+
+
+/// <summary>
+/// Determines whether this building grants the super weapon, through its own type or
+/// through an upgrade plugged into it.
+/// </summary>
+/// <remarks>An upgrade grants its super weapon without the auxiliary building check that
+/// the building's own type is held to.</remarks>
+bool BuildingClass::Grants_Super_Weapon(SuperWeaponType super) const
+{
+	if (Fetch_Super_Weapon() == super || Fetch_Super_Weapon2() == super) {
+		return(true);
+	}
+
+	for (int index = 0; index < BUILDING_UPGRADE_MAX; index++) {
+		BuildingTypeClass const * upgrade = Upgrades[index];
+		if (upgrade != NULL && (upgrade->SuperWeapon == super || upgrade->SuperWeapon2 == super)) {
+			return(true);
+		}
+	}
+	return(false);
 }
 
 

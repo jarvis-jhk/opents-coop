@@ -1385,10 +1385,12 @@ void HouseClass::AI(void)
 	*/
 	if (/*!IsAlerted &&*/ !TeamTime) {
 
-		SUGGESTED_TEAM_LIST team = Suggested_New_Team(false);
-		if (team.Count() > 0) {
-			for (int i = 0; i < team.Count(); i++) {
-				team[i]->Create_One_Of(this);
+		if (!Is_Human_Player()) {
+			SUGGESTED_TEAM_LIST team = Suggested_New_Team(false);
+			if (team.Count() > 0) {
+				for (int i = 0; i < team.Count(); i++) {
+					team[i]->Create_One_Of(this);
+				}
 			}
 		}
 
@@ -2225,7 +2227,7 @@ void HouseClass::Make_Ally(HouseClass * house)
 
 			if (Is_Human_Player() && Session.Type != GAME_NORMAL && !house->Class->IsMultiplayPassive) {
 				snprintf(buffer, sizeof(buffer), Fetch_String(TXT_HAS_ALLIED), Session.Shown_Name(this).c_str(), Session.Shown_Name(house).c_str());
-				Session.Messages.Add_Message(NULL, 0, buffer, Class->Scheme, TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW), int(TICKS_PER_MINUTE * Rule->MessageDelay));
+				Session.Messages.Add_Message(NULL, 0, buffer, Scheme, TextPrintType(TPF_6PT_GRAD|TPF_USE_GRAD_PAL|TPF_FULLSHADOW), int(TICKS_PER_MINUTE * Rule->MessageDelay));
 
 				if (Is_Player_Control()) {
 					Speak(VOX_ALLIANCE_FORMED);
@@ -7812,13 +7814,13 @@ bool HouseClass::AI_Build_Defense(int nodeindex, DynamicVectorClass<Cell> * cell
 		}
 	}
 
+	BuildingTypeClass * choice = NULL;
 	if (success) {
 
 		/*
 		 * Pick the defense to build: cheap buildings and buildings with a high
 		 * value against the chosen category are favored.
 		 */
-		BuildingTypeClass * choice;
 		if (defenses->Count() == 1) {
 			choice = (*defenses)[0];
 		} else {
@@ -7837,6 +7839,11 @@ bool HouseClass::AI_Build_Defense(int nodeindex, DynamicVectorClass<Cell> * cell
 			}
 			choice = distribution.Sample();
 		}
+	}
+
+	if (choice == NULL) {
+		success = false;
+	} else {
 
 		/*
 		 * A tower being armed is built itself, and the picked upgrade is queued at the
@@ -9018,22 +9025,11 @@ void HouseClass::Update_Present_Super_Weapons(void)
 				bool present = false;
 				bool enabled = false;
 				if (!IsDefeated) {
-					for (int j = 0; j < Buildings.Count(); j++) {
-						BuildingClass * b = Buildings[j];
-						if (!b->IsInLimbo && b->IsActive && b->House->Fetch_ID() == Fetch_ID()) {
-							for (int k = 0; k < 3; k++) {
-								BuildingTypeClass const * upgrade = b->Upgrades[k];
-								if (upgrade != NULL && (upgrade->SuperWeapon == s || upgrade->SuperWeapon2 == s)) {
-									present = true;
-									if (!enabled) enabled = b->IsOn;
-								}
-							}
-							if (b->Fetch_Super_Weapon() == s || b->Fetch_Super_Weapon2() == s) {
-								present = true;
-								if (enabled) break;
-								enabled = b->IsOn;
-							}
-							if (enabled && present) break;
+					for (int j = 0; j < Buildings.Count() && !enabled; j++) {
+						BuildingClass const * b = Buildings[j];
+						if (b->IsActive && b->House == this && !b->IsInLimbo && b->Grants_Super_Weapon(SuperWeaponType(s))) {
+							present = true;
+							enabled = b->IsOn;
 						}
 					}
 				}
@@ -9094,32 +9090,21 @@ void HouseClass::Enable_Available_Super_Weapons(void)
 	if (!IsDefeated) {
 		for (int s = 0; s < SuperWeapon.Count(); s++) {
 			if (!SuperWeapon[s]->Is_Present() || SuperWeapon[s]->Is_One_Time()) {
-				bool from_upgrade = false;
-				int j = Buildings.Count() - 1;
-				if (j >= 0) {
-					while (true) {
-						BuildingClass * b = Buildings[j];
-						if (b->IsActive && b->House == this && !b->IsInLimbo) {
-							for (int k = 0; k < BUILDING_UPGRADE_MAX; k++) {
-								BuildingTypeClass const * upgrade = b->Upgrades[k];
-								if (upgrade != NULL && (upgrade->SuperWeapon == s || upgrade->SuperWeapon2 == s)) {
-									from_upgrade = true;
-									break;
-								}
-							}
-							if (b->Fetch_Super_Weapon() == s || b->Fetch_Super_Weapon2() == s || from_upgrade) {
-								SuperWeapon[s]->Enable(false, this == PlayerPtr, Power_Fraction() < 1.0);
-								if (this == PlayerPtr) {
-									Map.Add(RTTI_SPECIAL, s);
-									Map.Column[1].Flag_To_Redraw();
-								}
-								break;
-							}
-						}
-						j--;
-						if (j < 0) {
-							break;
-						}
+				bool present = false;
+				bool switched_on = false;
+				for (int j = 0; j < Buildings.Count() && !switched_on; j++) {
+					BuildingClass const * b = Buildings[j];
+					if (b->IsActive && b->House == this && !b->IsInLimbo && b->Grants_Super_Weapon(SuperWeaponType(s))) {
+						present = true;
+						switched_on = b->IsOn;
+					}
+				}
+
+				if (present) {
+					SuperWeapon[s]->Enable(false, this == PlayerPtr, Power_Fraction() < 1.0 || !switched_on);
+					if (this == PlayerPtr) {
+						Map.Add(RTTI_SPECIAL, s);
+						Map.Column[1].Flag_To_Redraw();
 					}
 				}
 			}

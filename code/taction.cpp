@@ -1484,11 +1484,13 @@ bool TActionClass::TAction_PLAY_SOUND_RANDOM(HouseClass * , ObjectClass * , Trig
 	for (int index = 0; index < WAYPT_COUNT; index++) {
 		if (Scen->Is_Valid_Waypoint(index)) {
 			list[count++] = Scen->Get_Waypoint_Cell(index);
-			if (count == sizeof(list)) break;
+			if (count == ARRAY_SIZE(list)) break;
 		}
 	}
 
-	Sound_Effect(Data.Sound, Coord(list[Random_Pick(0, count-1)]));
+	if (count > 0) {
+		Sound_Effect(Data.Sound, Coord(list[Random_Pick(0, count-1)]));
+	}
 	return(true);
 }
 
@@ -1646,9 +1648,7 @@ bool TActionClass::TAction_FIRE_SALE(HouseClass * , ObjectClass * , TriggerClass
 
 
 /// <summary>
-/// Puts a house on alert.
-/// An alerted house will build and dispatch its autocreate teams, which is how a
-/// computer opponent is woken up part way through a mission.
+/// Sets the named house's legacy alert flag without enabling team creation.
 /// </summary>
 bool TActionClass::TAction_AUTOCREATE(HouseClass * , ObjectClass * , TriggerClass * trig, Cell const & )
 {
@@ -2189,7 +2189,7 @@ bool TActionClass::TAction_ENABLE_TRIGGER(HouseClass * , ObjectClass * , Trigger
 {
 	if (Trigger != NULL && Trigger->Is_Enabled_At(Scen->Difficulty)) {
 		for (int index = 0; index < Triggers.Count(); index++) {
-			if (Triggers[index]->Class == Trigger) {
+			if (Triggers[index]->Class == Trigger && !Triggers[index]->Is_Enabled()) {
 				Triggers[index]->Enable();
 			}
 		}

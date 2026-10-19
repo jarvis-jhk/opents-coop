@@ -259,6 +259,7 @@ void AircraftClass::Init(void)
 		HeightAGL = Class->Flight_Level();
 		Ammo = Class->MaxAmmo;
 		Strength = Class->MaxStrength;
+		IsCloakable = Class->IsCloakable;
 	}
 
 	if (House != NULL) {
@@ -628,8 +629,8 @@ void AircraftClass::AI(void)
 	}
 
 	if (Cargo.Is_Something_Attached() && Class->IsCarryall) {
-		Cargo.Attached_Object()->PrimaryFacing = SecondaryFacing;
-		Cargo.Attached_Object()->SecondaryFacing = SecondaryFacing;
+		Cargo.Attached_Object()->PrimaryFacing.Set(SecondaryFacing.Current());
+		Cargo.Attached_Object()->SecondaryFacing.Set(SecondaryFacing.Current());
 		Cargo.Attached_Object()->PositionCoord = PositionCoord;
 	}
 }
@@ -816,7 +817,7 @@ int AircraftClass::Do_MISSION_UNLOAD(void)
 						Map.Place_Down(PositionCell, this);
 
 						if (!unit->IsInTransport) {
-							if (unit->Team != NULL) {
+							if (unit->Team != NULL && Team != NULL) {
 								Team->Add(unit);
 							}
 						}

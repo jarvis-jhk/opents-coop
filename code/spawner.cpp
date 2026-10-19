@@ -382,7 +382,7 @@ static bool Spawner_Resume(bool & gameloaded)
 	// The file seats the same people again, so the network opens before the load.
 	if (type == GAME_INTERNET || shared) {
 		std::string fault;
-		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)) {
+		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), Session.Color_Count(), fault)) {
 			return(Spawner_Refuse("%s", fault.c_str()));
 		}
 
@@ -788,7 +788,7 @@ bool Spawner_Prepare(bool & gameloaded)
 		}
 	} else {
 		std::string fault;
-		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), MAX_MPLAYER_COLORS, fault)) {
+		if (!SpawnConfig.Is_Playable(HouseTypes.Count(), Session.Color_Count(), fault)) {
 			return(Spawner_Refuse("%s", fault.c_str()));
 		}
 

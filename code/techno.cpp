@@ -831,8 +831,8 @@ int TechnoClass::Time_To_Build(void) const
 	*/
 	double power = House->Power_Fraction();
 	if (power > 1.0) power = 1.0;
-	if (power < 1.0 && power > 0.75) power = 0.75;
-	if (power < 0.5) power = 0.5;
+	if (power < 1.0 && power > Rule->BestLowPowerBuildRateCoefficient) power = Rule->BestLowPowerBuildRateCoefficient;
+	if (power < Rule->WorstLowPowerBuildRateCoefficient) power = Rule->WorstLowPowerBuildRateCoefficient;
 	power = std::max(power, Rule->MinLowPowerProductionSpeed);
 	val /= power;
 
@@ -2995,7 +2995,7 @@ void TechnoClass::AI(void)
 		}
 	}
 
-	if (!House->Is_Human_Player() && TarCom != NULL && House->Is_Ally(TarCom)) {
+	if (!House->Is_Human_Player() && TarCom != NULL && House->Is_Ally(TarCom) && Combat_Damage() >= 0) {
 		if (RTTI != RTTI_AIRCRAFT && (RTTI != RTTI_INFANTRY || !((InfantryClass *)this)->Class->IsEngineer)) {
 			Assign_Target(NULL);
 		}
@@ -7941,6 +7941,9 @@ int TechnoClass::Anti_Air(void) const
 	if (Is_Weapon_Equipped()) {
 
 		WeaponTypeClass const * weapon = PrimaryWeapon;
+		if (!weapon->Bullet->IsAntiAircraft && SecondaryWeapon != NULL) {
+			weapon = SecondaryWeapon;
+		}
 		BulletTypeClass const * bullet = weapon->Bullet;
 		WarheadTypeClass const * warhead = weapon->WarheadPtr;
 
@@ -8055,7 +8058,9 @@ int TechnoClass::Anti_Infantry(void) const
  *=============================================================================================*/
 void TechnoClass::Look(bool incremental, bool dontmap)
 {
-	assert(!IsInLimbo);
+	if (IsInLimbo) {
+		return;
+	}
 
 	if (IsLocked && (!House->Class->IsMultiplayPassive || Session.Type == GAME_NORMAL)) {
 		int sight_increase = 10 * (Get_Coord().Z / Rule->LeptonsPerSightIncrease);
@@ -8611,6 +8616,12 @@ Coord TechnoClass::Railgun_Beam_Damage(Coord & coord, AbstractClass *abstract, W
 
 	for (int j = 0; j < targets.Count(); j++) {
 		int damage = weapon->AmbientDamage;
+		if (damage > 0) {
+			damage = (int)(House->FirepowerBias * FirepowerBias * damage);
+			if (Has_Ability(ABILITY_FIREPOWER)) {
+				damage = (int)((Rule->VeteranCombat + 1.0) * damage);
+			}
+		}
 		targets[j]->Take_Damage(damage, 0, weapon->WarheadPtr, this);
 	}
 

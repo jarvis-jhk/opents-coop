@@ -1251,6 +1251,7 @@ ObjectClass * DisplayClass::Next_Object(ObjectClass * object) const
 	}
 
 	static LayerType _layers[] = {
+		LAYER_UNDERGROUND,
 		LAYER_GROUND,
 		LAYER_AIR,
 		LAYER_TOP
@@ -1302,7 +1303,8 @@ ObjectClass * DisplayClass::Prev_Object(ObjectClass * object)  const
 	static LayerType _layers[] = {
 		LAYER_TOP,
 		LAYER_AIR,
-		LAYER_GROUND
+		LAYER_GROUND,
+		LAYER_UNDERGROUND
 	};
 
 	for (int lindex = 0; lindex < ARRAY_SIZE(_layers); lindex++) {
@@ -2216,7 +2218,7 @@ void DisplayClass::Mouse_Left_Release(Coord const & coord, Cell const & cell, Ob
 			**	If an action was detected as possible, then pass this action event
 			**	to all selected objects.
 			*/
-			if (action != ACTION_NONE && action != ACTION_SELECT) {
+			if (action != ACTION_NONE && action != ACTION_SELECT && action != ACTION_TOGGLE_SELECT) {
 
 				/*
 				**	Pass the action to all the selected objects. But first, redetermine
