@@ -32,6 +32,9 @@ std::size_t const SCENARIO_MAX = 63;
 // The save name travels in a 16-byte field of the lobby campaign packet.
 std::size_t const SAVE_MAX = 15;
 
+// The menu's eight colors as rising positions in the rules' [Colors] list, so the launch file's color sort keeps seat order.
+int const SEAT_COLORS[SEAT_MAX] = { 1, 10, 13, 16, 19, 23, 27, 36 };
+
 
 bool Same_Name(std::string const & left, std::string const & right)
 {
@@ -205,8 +208,8 @@ bool Is_Launchable(Launch const & launch, std::string & fault)
 
 /// <summary>
 /// Returns the launch file text that starts the shared campaign at this machine, or an empty
-/// string when the lobby state cannot be launched. Every seat gets a color in seat order so
-/// the launch file's color sort keeps that order on every machine.
+/// string when the lobby state cannot be launched. Every seat gets one of the menu's eight
+/// colors, rising in seat order, so the launch file's color sort keeps that order on every machine.
 /// </summary>
 std::string Spawn_INI(Launch const & launch)
 {
@@ -225,7 +228,7 @@ std::string Spawn_INI(Launch const & launch)
 		}
 		Put(out, "Name", Seat_Name(order[index].Name));
 		Put(out, "Side", 0);
-		Put(out, "Color", (int)index);
+		Put(out, "Color", SEAT_COLORS[index]);
 	}
 	Put(out, "IsSinglePlayer", "yes");
 	Put(out, "CampaignID", launch.Campaign);
@@ -262,7 +265,7 @@ std::string Spawn_INI(Launch const & launch)
 		out += "\n[Other" + std::to_string(other++) + "]\n";
 		Put(out, "Name", Seat_Name(seat.Name));
 		Put(out, "Side", 0);
-		Put(out, "Color", (int)index);
+		Put(out, "Color", SEAT_COLORS[index]);
 		Put(out, "Ip", Dotted(seat.IP));
 		Put(out, "Port", seat.Port);
 	}

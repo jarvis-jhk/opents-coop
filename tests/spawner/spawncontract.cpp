@@ -1213,7 +1213,8 @@ int main(void)
 				&& config.CampaignDifficulty == 0 && config.CampaignCDifficulty == 2
 				&& config.Seed == 4711 && config.GameSpeed == 2 && config.Firestorm
 				&& config.ListenPort == 1234 && config.ConnTimeout == 36000
-				&& config.Is_Playable(2, 8, fault);
+				&& config.Is_Playable(2, 40, fault)
+				&& config.Slots[0].Color == 1 && config.Slots[1].Color == 10 && config.Slots[2].Color == 13;
 			if (machine == 1) {
 				seated = seated && config.Slots[1].Address == "192.168.1.3" && config.Slots[2].Address == "192.168.1.2"
 					&& config.Slots[1].Port == 1234;
@@ -1273,7 +1274,7 @@ int main(void)
 			SpawnerConfigClass config = Read(text.c_str(), (int)text.size());
 			identity[machine] = config.Session_Identity_CRC();
 			seated = seated && LobbyCampaign::Is_Launchable(launch, fault)
-				&& config.Is_Playable(2, 8, fault) && config.HumanCount == 3
+				&& config.Is_Playable(2, 40, fault) && config.HumanCount == 3
 				&& config.Slots[config.LocalSlot].Name == LobbyCampaign::Seat_Name(launch.Local)
 				&& config.Slots[0].Name == "Zed" && config.Slots[1].Name == "Alice Smith" && config.Slots[2].Name == "bob"
 				&& config.IsHost == (machine == 1);
@@ -1310,7 +1311,7 @@ int main(void)
 			resumed = resumed && config.Launch_Type() == LaunchType::Resume && config.Is_Shared_Resume()
 				&& !config.Is_Shared_House() && config.SaveGameName == "SVGM_003.NET"
 				&& config.AutoSaveInterval == 5400 && config.HumanCount == 2
-				&& text.find("Scenario=") == std::string::npos && config.Is_Playable(2, 8, fault);
+				&& text.find("Scenario=") == std::string::npos && config.Is_Playable(2, 40, fault);
 		}
 		Check(resumed, "a lobby resume names the save and seats both machines");
 		Check(identity[0] == identity[1], "both machines' resume files name one match");
