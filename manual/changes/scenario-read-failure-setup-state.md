@@ -1,7 +1,7 @@
 ---
 title: Leave scenario setup after a scenario fails to load
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets: []
 credit: [ZivDero]
 ---

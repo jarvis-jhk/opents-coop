@@ -1,7 +1,7 @@
 ---
 title: MinDamage=0 lets armor reduce a hit to nothing
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: MinDamage

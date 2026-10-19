@@ -1,7 +1,7 @@
 ---
 title: Save games with infantry types that have no sequence
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: Sequence

@@ -1,7 +1,7 @@
 ---
 title: The pointer comes back after switching away during loading
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets: []
 credit: [ZivDero]
 ---

@@ -1,7 +1,7 @@
 ---
 title: Track titles match without regard to letter case
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: Theme

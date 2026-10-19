@@ -1,7 +1,7 @@
 ---
 title: Damaged service depots use damaged art for the second repair stage
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: SpecialAnimTwoDamaged

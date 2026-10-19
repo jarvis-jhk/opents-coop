@@ -1,7 +1,7 @@
 ---
 title: Computer houses keep deployed structures that cannot pack up
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: TickTank

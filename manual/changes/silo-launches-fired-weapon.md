@@ -1,7 +1,7 @@
 ---
 title: Silos launch the missile of the superweapon that was fired
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: system
   id: superweapons

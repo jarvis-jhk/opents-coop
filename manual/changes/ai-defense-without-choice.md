@@ -1,7 +1,7 @@
 ---
 title: Stop AI defense planning crashing without a choice
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: system
   id: ai-base-building

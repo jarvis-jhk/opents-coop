@@ -1,7 +1,7 @@
 ---
 title: Vehicle thieves are not offered allied vehicles
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: VehicleThief

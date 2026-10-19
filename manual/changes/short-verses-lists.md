@@ -1,7 +1,7 @@
 ---
 title: Accept Verses lists shorter than five entries
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: Verses

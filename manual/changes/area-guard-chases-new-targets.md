@@ -1,7 +1,7 @@
 ---
 title: Units guarding another object engage each new target directly
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets: []
 credit: [ZivDero, JoyfulShush]
 ---

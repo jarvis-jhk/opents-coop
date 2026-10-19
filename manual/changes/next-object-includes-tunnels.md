@@ -1,7 +1,7 @@
 ---
 title: Next and Previous Object reach units in tunnels
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: command
   id: NextObject

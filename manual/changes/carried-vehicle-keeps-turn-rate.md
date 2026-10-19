@@ -1,7 +1,7 @@
 ---
 title: Vehicles keep their own turn rate after a carryall drops them
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: key
   id: Carryall

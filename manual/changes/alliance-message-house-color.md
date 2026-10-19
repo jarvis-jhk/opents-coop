@@ -1,7 +1,7 @@
 ---
 title: Alliance messages use the house's color
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets: []
 credit: [ZivDero, Rampastring]
 ---

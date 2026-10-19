@@ -1,7 +1,7 @@
 ---
 title: Human houses raise no teams from AI triggers
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: system
   id: ai-team-production

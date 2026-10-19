@@ -1,7 +1,7 @@
 ---
 title: Override the game window icon
 category: feature
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: system
   id: ui-files

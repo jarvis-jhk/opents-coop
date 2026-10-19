@@ -1,7 +1,7 @@
 ---
 title: Objects off the map no longer reveal the shroud
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: system
   id: map-visibility

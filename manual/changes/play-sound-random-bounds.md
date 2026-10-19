@@ -1,7 +1,7 @@
 ---
 title: Keep Play Sound Effect (Random) within its waypoint list
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets:
 - type: action
   id: TACTION_PLAY_SOUND_RANDOM

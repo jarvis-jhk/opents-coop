@@ -1,7 +1,7 @@
 ---
 title: Shift-clicking an object only changes the selection
 category: fix
-release: 0.2.0
+release: 0.11.0
 targets: []
 credit: [ZivDero, JoyfulShush]
 ---
